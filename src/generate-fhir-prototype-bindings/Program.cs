@@ -135,7 +135,7 @@ namespace generate_fhir_prototype_bindings
 
             if (!FhirTypeManager.Exists("xhtml"))
             {
-                FhirTypeManager.ProcessType(
+                FhirTypeManager.ProcessSpreadsheetType(
                     "xhtml",
                     "string",
                     "WARN: xhtml is defined as string as a definition cannot be found!",
@@ -148,7 +148,7 @@ namespace generate_fhir_prototype_bindings
 
             if (!FhirTypeManager.Exists("SimpleQuantity"))
             {
-                FhirTypeManager.ProcessType(
+                FhirTypeManager.ProcessSpreadsheetType(
                 "SimpleQuantity",
                 "Quantity",
                 "WARN: SimpleQuantity definition cannot be found!",
@@ -161,7 +161,7 @@ namespace generate_fhir_prototype_bindings
 
             if (!FhirTypeManager.Exists("MoneyQuantity"))
             {
-                FhirTypeManager.ProcessType(
+                FhirTypeManager.ProcessSpreadsheetType(
                 "MoneyQuantity",
                 "Quantity",
                 "WARN: MoneyQuantity definition cannot be found!",
@@ -174,7 +174,7 @@ namespace generate_fhir_prototype_bindings
 
             if (!FhirTypeManager.Exists("Logical"))
             {
-                FhirTypeManager.ProcessType(
+                FhirTypeManager.ProcessSpreadsheetType(
                 "Logical",
                 "Element",
                 "WARN: Logical definition cannot be found!",
@@ -187,7 +187,7 @@ namespace generate_fhir_prototype_bindings
 
             if (!FhirTypeManager.Exists("Structure"))
             {
-                FhirTypeManager.ProcessType(
+                FhirTypeManager.ProcessSpreadsheetType(
                 "Structure",
                 "Element",
                 "WARN: Structure definition cannot be found!",
@@ -415,7 +415,7 @@ namespace generate_fhir_prototype_bindings
 
                 // **** make this a type ****
 
-                FhirTypeManager.ProcessType(name, elementBaseName, comment, isPrimitive, sourceFilename);
+                FhirTypeManager.ProcessSpreadsheetType(name, elementBaseName, comment, isPrimitive, sourceFilename);
             }
         }
 
@@ -484,7 +484,7 @@ namespace generate_fhir_prototype_bindings
 
                 // **** process this field ****
 
-                FhirTypeManager.ProcessDataElement(element, baseType, comment, cardinality, isPrimitive, sourceFilename);
+                FhirTypeManager.ProcessSpreadsheetDataElement(element, baseType, comment, cardinality, isPrimitive, sourceFilename);
             }
         }
 
@@ -562,7 +562,7 @@ namespace generate_fhir_prototype_bindings
                 string baseType = row[ordinalType].ToString();
                 string comment = row[ordinalComment].ToString();
 
-                FhirTypeManager.ProcessType(name, baseType, comment, true, sourceFilename);
+                FhirTypeManager.ProcessSpreadsheetType(name, baseType, comment, true, sourceFilename);
             }
         }
     }

@@ -84,7 +84,7 @@ namespace generate_fhir_prototype_bindings.Managers
         }
 
         ///-------------------------------------------------------------------------------------------------
-        /// <summary>Process the primitive.</summary>
+        /// <summary>Process a primitive type from an XML Spreadsheet.</summary>
         ///
         /// <remarks>Gino Canessa, 7/8/2019.</remarks>
         ///
@@ -95,35 +95,42 @@ namespace generate_fhir_prototype_bindings.Managers
         /// <param name="sourceFilename">Filename of the source file.</param>
         ///-------------------------------------------------------------------------------------------------
 
-        public static void ProcessType(
-                                        string name,
-                                        string baseType,
-                                        string comment,
-                                        bool isPrimitive,
-                                        string sourceFilename
-                                        )
+        public static void ProcessSpreadsheetType(
+                                                string name,
+                                                string baseType,
+                                                string comment,
+                                                bool isPrimitive,
+                                                string sourceFilename
+                                                )
         {
-            _instance._ProcessType(name, baseType, comment, isPrimitive, sourceFilename);
+            _instance._ProcessSpreadsheetType(
+                name, 
+                baseType, 
+                comment, 
+                isPrimitive, 
+                sourceFilename
+                );
         }
 
         ///-------------------------------------------------------------------------------------------------
-        /// <summary>Process the primitive.</summary>
+        /// <summary>Process a primitive type from an XML Spreadsheet.</summary>
         ///
         /// <remarks>Gino Canessa, 7/9/2019.</remarks>
         ///
-        /// <param name="name">          The name.</param>
-        /// <param name="baseType">      Type of the base.</param>
-        /// <param name="comment">       The comment.</param>
-        /// <param name="sourceFilename">Filename of the source file.</param>
+        /// <param name="name">           The name.</param>
+        /// <param name="baseType">       Type of the base.</param>
+        /// <param name="comment">        The comment.</param>
+        /// <param name="isFhirPrimitive">True if is primitive, false if not.</param>
+        /// <param name="sourceFilename"> Filename of the source file.</param>
         ///-------------------------------------------------------------------------------------------------
 
-        private void _ProcessType(
-                                    string name,
-                                    string baseType,
-                                    string comment,
-                                    bool isFhirPrimitive,
-                                    string sourceFilename
-                                    )
+        private void _ProcessSpreadsheetType(
+                                            string name,
+                                            string baseType,
+                                            string comment,
+                                            bool isFhirPrimitive,
+                                            string sourceFilename
+                                            )
         {
             // **** skip empty or excluded fields ****
 
@@ -162,7 +169,7 @@ namespace generate_fhir_prototype_bindings.Managers
         }
 
         ///-------------------------------------------------------------------------------------------------
-        /// <summary>Process the data element.</summary>
+        /// <summary>Process an XML Spreadsheet data element.</summary>
         ///
         /// <remarks>Gino Canessa, 7/8/2019.</remarks>
         ///
@@ -174,7 +181,7 @@ namespace generate_fhir_prototype_bindings.Managers
         /// <param name="sourceFilename">Filename of the source file.</param>
         ///-------------------------------------------------------------------------------------------------
 
-        public static void ProcessDataElement(
+        public static void ProcessSpreadsheetDataElement(
                                                 string element,
                                                 string baseType,
                                                 string comment,
@@ -183,23 +190,30 @@ namespace generate_fhir_prototype_bindings.Managers
                                                 string sourceFilename
                                                 )
         {
-            _instance._ProcessDataElement(element, baseType, comment, cardinality, isPrimitive, sourceFilename);
+            _instance._ProcessSpreadsheetDataElement(
+                element, 
+                baseType, 
+                comment, 
+                cardinality, 
+                isPrimitive, 
+                sourceFilename
+                );
         }
 
         ///-------------------------------------------------------------------------------------------------
-        /// <summary>Process the data element.</summary>
+        /// <summary>Process an XML Spreadsheet data element.</summary>
         ///
         /// <remarks>Gino Canessa, 7/8/2019.</remarks>
         ///
-        /// <param name="element">       The element.</param>
-        /// <param name="baseType">      Type of the base.</param>
-        /// <param name="comment">       The comment.</param>
-        /// <param name="cardinality">   The cardinality.</param>
-        /// <param name="isFhirPrimitive">   True if is primitive, false if not.</param>
-        /// <param name="sourceFilename">Filename of the source file.</param>
+        /// <param name="element">        The element.</param>
+        /// <param name="baseType">       Type of the base.</param>
+        /// <param name="comment">        The comment.</param>
+        /// <param name="cardinality">    The cardinality.</param>
+        /// <param name="isFhirPrimitive">True if is primitive, false if not.</param>
+        /// <param name="sourceFilename"> Filename of the source file.</param>
         ///-------------------------------------------------------------------------------------------------
 
-        private void _ProcessDataElement(
+        private void _ProcessSpreadsheetDataElement(
                                         string element,
                                         string baseType,
                                         string comment,
@@ -228,10 +242,10 @@ namespace generate_fhir_prototype_bindings.Managers
 
             // **** for debugging ****
 
-            if (element.StartsWith("MeasureReport", StringComparison.Ordinal))
-            {
-                currentTypeNode = null;
-            }
+            //if (element.StartsWith("MeasureReport", StringComparison.Ordinal))
+            //{
+            //    currentTypeNode = null;
+            //}
 
             //if (element.Contains("ActionDefinition.relatedAction", StringComparison.Ordinal))
             //{
@@ -346,7 +360,7 @@ namespace generate_fhir_prototype_bindings.Managers
         }
 
         ///-------------------------------------------------------------------------------------------------
-        /// <summary>Searches for the first or create type.</summary>
+        /// <summary>Either selects an existing matching type or creates the matching type record.</summary>
         ///
         /// <remarks>Gino Canessa, 7/16/2019.</remarks>
         ///
@@ -612,11 +626,6 @@ namespace generate_fhir_prototype_bindings.Managers
                 {
                     continue;
                 }
-
-                //if (node.Name.StartsWith("MeasureReport", StringComparison.Ordinal))
-                //{
-                //    Console.WriteLine("");
-                //}
 
                 // **** skip circular references and primitives ****
 

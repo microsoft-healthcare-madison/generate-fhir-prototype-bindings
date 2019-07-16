@@ -87,9 +87,6 @@ namespace generate_fhir_prototype_bindings.Models
             }
             else if (typeName.StartsWith('='))
             {
-                //// **** this is a hint which should be removed ****
-
-                //typeName = "";
                 // **** this should be formatted correctly already ****
 
                 typeName = typeName.Substring(1);

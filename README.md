@@ -1,9 +1,9 @@
-#### Goals:
+##### Goals:
 
 - Create a program to generate languange bindings to facilitate rapid prototyping and testing of changes to FHIR resources.
 
 
-#### Usage:
+##### Usage:
 
 ```
   -i, --fhir-directory    Required. FHIR Base Directory
@@ -27,8 +27,10 @@ dotnet generate-fhir-prototype-bindings.dll -i /path/to/fhir -o /path/to/output 
 ```
 
 
-#### To Do:
+##### To Do:
 
+- Allow filtering on kinds (e.g., logical).
 - Parse FHIR structure definitions.
+- Ability to specify specific XML's to parse (replacing from structure definitions).
 - Output multiple files (currently limited to single).
-- Add additional language support (C#, Java)
+- Add additional language support (C#, Java).

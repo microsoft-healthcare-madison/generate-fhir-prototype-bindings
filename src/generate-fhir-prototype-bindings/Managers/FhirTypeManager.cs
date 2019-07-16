@@ -342,158 +342,22 @@ namespace generate_fhir_prototype_bindings.Managers
                         ref currentTypeNode
                         );
                 }
-
-                //// **** determine if this field needs to be promoted ****
-
-                //if ((nameIndex < (namePartCount - 1)) &&
-                //    (   string.IsNullOrEmpty(baseType) ||
-                //        baseType[0].Equals('=') ||
-                //        baseType[0].Equals('@') ||
-                //        baseType.Equals("BackboneElement", StringComparison.Ordinal) ||
-                //        baseType.Equals("Element", StringComparison.Ordinal) ||
-                //        (_fhirTypeDict.ContainsKey(baseType) && _fhirTypeDict[baseType].IsFhirPrimitive)
-                //    ))
-                //{
-                //    // **** change the type on the existing node ****
-
-                //    currentTypeNode.TypeName = pathCamelCase;
-
-                //    // **** create a type for this within the manager ****
-
-                //    FindOrCreateType(
-                //        pathCamelCase,
-                //        pathCamelCase,
-                //        pathCamelCase,
-                //        comment,
-                //        sourceFilename,
-                //        isFhirPrimitive,
-                //        ref currentTypeNode
-                //        );
-
-                //    // **** nothing else to do for top level ****
-
-                //    continue;
-                //}
-
-                // ----------------------------------
-
-
-                //// **** check to see if this child already exists within this type ****
-
-                //if (currentTypeNode.Properties.ContainsKey(name))
-                //{
-                //    // **** grab our type name ****
-
-                //    string nextTypeName = currentTypeNode.Properties[name].TypeName;
-
-                //    // **** check for no type (implicit typing of element groups) ****
-
-                //    if (string.IsNullOrEmpty(nextTypeName))
-                //    {
-                //        // **** use the path for this type ****
-
-                //        nextTypeName = pathCamelCase;
-
-                //        // **** update our node ****
-
-                //        currentTypeNode.Properties[name].TypeName = nextTypeName;
-
-                //        // **** create our new type node ****
-
-                //        FhirType nextType = FhirType.CreateFhirType(
-                //            nextTypeName,
-                //            pathCamelCase,
-                //            "Element",
-                //            currentTypeNode.Properties[name].Comment,
-                //            currentTypeNode.SourceFilename,
-                //            false
-                //            );
-
-                //        // **** add to our dictionary ****
-
-                //        _fhirTypeDict.Add(nextTypeName, nextType);
-
-                //    }
-
-                //    // **** move to the node indicated ****
-
-                //    if (_fhirTypeDict.ContainsKey(currentTypeNode.Properties[name].TypeName))
-                //    {
-                //        // **** move to the desired type node ****
-
-                //        currentTypeNode = _fhirTypeDict[currentTypeNode.Properties[name].TypeName];
-                //    }
-
-                //    // **** nothing else to process yet ****
-
-                //    continue;
-                //}
-
-
-
-
-                //// **** look for Backbone elements ****
-
-                //if (string.Equals(property.TypeName, "BackboneElement", StringComparison.Ordinal) ||
-                //    string.Equals(property.TypeName, "Element"))
-                //{
-                //    if (!_fhirTypeDict.ContainsKey(pathCamelCase))
-                //    {
-                //        // **** create our new type node ****
-
-                //        FhirType nextType = FhirType.CreateFhirType(
-                //            pathCamelCase,
-                //            pathCamelCase,
-                //            property.TypeName,
-                //            currentTypeNode.Properties[name].Comment,
-                //            currentTypeNode.SourceFilename,
-                //            false
-                //            );
-
-                //        // **** add to our dictionary ****
-
-                //        _fhirTypeDict.Add(pathCamelCase, nextType);
-                //    }
-
-                //    // **** move our pointer ****
-
-                //    currentTypeNode = _fhirTypeDict[pathCamelCase];
-                //}
-
-                //// **** check for new named types ****
-
-                //if (baseType.StartsWith('=') || baseType.StartsWith('@'))
-                //{
-                //    // **** need to create a type for this if it doesn't exist ****
-
-                //    if (!_fhirTypeDict.ContainsKey(property.TypeName))
-                //    {
-                //        // **** create our new type node ****
-
-                //        FhirType nextType = FhirType.CreateFhirType(
-                //            property.TypeName,
-                //            pathCamelCase,
-                //            "Element",
-                //            currentTypeNode.Properties[name].Comment,
-                //            currentTypeNode.SourceFilename,
-                //            false
-                //            );
-
-                //        // **** add to our dictionary ****
-
-                //        _fhirTypeDict.Add(property.TypeName, nextType);
-                //    }
-
-                //    // **** move our pointer ****
-
-                //    currentTypeNode = _fhirTypeDict[property.TypeName];
-                //}
-
             }
-
-
         }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Searches for the first or create type.</summary>
+        ///
+        /// <remarks>Gino Canessa, 7/16/2019.</remarks>
+        ///
+        /// <param name="name">           The name.</param>
+        /// <param name="pathCamelCase">  The path camel case.</param>
+        /// <param name="typeName">       Name of the type.</param>
+        /// <param name="comment">        The comment.</param>
+        /// <param name="sourceFilename"> Filename of the source file.</param>
+        /// <param name="isFhirPrimitive">True if is primitive, false if not.</param>
+        /// <param name="currentTypeNode">[in,out] The current type node.</param>
+        ///-------------------------------------------------------------------------------------------------
 
         private void FindOrCreateType(
                                         string name,

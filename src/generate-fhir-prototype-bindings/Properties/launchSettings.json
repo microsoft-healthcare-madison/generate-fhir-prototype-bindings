@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "generate-fhir-prototype-bindings": {
+      "commandName": "Project",
+      "commandLineArgs": "-i c:/git/fhir -o c:/temp/convert/fhir.ts --ts"
+    }
+  }
+}

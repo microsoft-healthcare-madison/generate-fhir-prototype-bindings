@@ -1,9 +1,12 @@
-##### Goals:
-
-- Create a program to generate languange bindings to facilitate rapid prototyping and testing of changes to FHIR resources.
 
 
-##### Usage:
+# generate-fhir-prototype-bindings
+
+A .Net Core utility to generate language bindings from FHIR sources for use in prototyping changes to FHIR resources.
+
+
+# Usage
+
 
 ```
   -i, --fhir-directory    Required. FHIR Base Directory
@@ -23,14 +26,39 @@
 
 Example:
 ```
-dotnet generate-fhir-prototype-bindings.dll -i /path/to/fhir -o /path/to/output --ts
+dotnet generate-fhir-prototype-bindings.dll -i /path/to/fhir -o /path/to/output.ts --ts
 ```
 
 
-##### To Do:
+## To Do:
 
-- Allow filtering on kinds (e.g., logical).
+- Allow filtering on structure types (e.g., logical).
 - Parse FHIR structure definitions.
-- Ability to specify specific XML's to parse (replacing from structure definitions).
-- Output multiple files (currently limited to single).
+- Specify specific XMLs to parse (to replace content from structure definitions).
+- Output multiple files.
 - Add additional language support (C#, Java).
+- Export a limited tree (e.g., only types necessary for a specified list of resources).
+
+
+## Contributing
+This project welcomes contributions and suggestions.  Most contributions require you to agree to a
+Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
+the rights to use your contribution. For details, visit https://cla.microsoft.com.
+
+When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
+a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
+provided by the bot. You will only need to do this once across all repos using our CLA.
+
+There are many other ways to contribute to FHIR Server for Azure.
+* [Submit bugs](https://github.com/microsoft-healthcare-madison/generate-fhir-prototype-bindings/issues) and help us verify fixes as they are checked in.
+* Review the [source code changes](https://github.com/microsoft-healthcare-madison/generate-fhir-prototype-bindings/pulls).
+* Engage with users and developers on [Official FHIR Zulip](https://chat.fhir.org/)
+* [Contribute bug fixes](CONTRIBUTING.md).
+
+See [Contributing](CONTRIBUTING.md) for more information.
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
+contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+FHIR&reg; is the registered trademark of HL7 and is used with the permission of HL7. 

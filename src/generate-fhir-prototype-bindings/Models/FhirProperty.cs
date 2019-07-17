@@ -69,7 +69,7 @@ namespace generate_fhir_prototype_bindings.Models
 
                 string[] typeParts = typeName.Split('.');
 
-                // **** rejoin with camel case ****
+                // **** rejoin with pascal case ****
 
                 typeName = typeParts[0];
 

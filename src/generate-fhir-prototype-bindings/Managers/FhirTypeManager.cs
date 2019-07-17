@@ -238,7 +238,7 @@ namespace generate_fhir_prototype_bindings.Managers
             string[] names = element.Split('.');
             int namePartCount = names.Length;
             FhirType currentTypeNode = null;
-            string pathCamelCase = "";
+            string pathPascalCase = "";
 
             // **** for debugging ****
 
@@ -276,9 +276,9 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 name = name.Replace(" ", "");
 
-                // **** append the next part of our Camel Case path ****
+                // **** append the next part of our Pascal Case path ****
 
-                pathCamelCase += string.Concat(name.Substring(0, 1).ToUpper(), name.Substring(1));
+                pathPascalCase += string.Concat(name.Substring(0, 1).ToUpper(), name.Substring(1));
 
                 // **** top level always needs to be a type ****
 
@@ -288,7 +288,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
                     FindOrCreateType(
                         name,
-                        pathCamelCase,
+                        pathPascalCase,
                         baseType,
                         comment,
                         sourceFilename,
@@ -342,13 +342,13 @@ namespace generate_fhir_prototype_bindings.Managers
 
                     // **** since we are promoting this node, we need to change it's type ****
 
-                    currentTypeNode.Properties[name].TypeName = pathCamelCase;
+                    currentTypeNode.Properties[name].TypeName = pathPascalCase;
 
                     // **** find or create a type for this ****
 
                     FindOrCreateType(
-                        pathCamelCase,
-                        pathCamelCase,
+                        pathPascalCase,
+                        pathPascalCase,
                         "Element",
                         currentTypeNode.Properties[name].Comment,
                         currentTypeNode.SourceFilename,
@@ -365,7 +365,7 @@ namespace generate_fhir_prototype_bindings.Managers
         /// <remarks>Gino Canessa, 7/16/2019.</remarks>
         ///
         /// <param name="name">           The name.</param>
-        /// <param name="pathCamelCase">  The path camel case.</param>
+        /// <param name="pathPascalCase">  The path pascal case.</param>
         /// <param name="typeName">       Name of the type.</param>
         /// <param name="comment">        The comment.</param>
         /// <param name="sourceFilename"> Filename of the source file.</param>
@@ -375,7 +375,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
         private void FindOrCreateType(
                                         string name,
-                                        string pathCamelCase,
+                                        string pathPascalCase,
                                         string typeName,
                                         string comment,
                                         string sourceFilename,
@@ -407,7 +407,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 currentTypeNode = FhirType.CreateFhirType(
                     name,
-                    pathCamelCase,
+                    pathPascalCase,
                     typeName,
                     comment,
                     sourceFilename,

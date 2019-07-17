@@ -8,6 +8,25 @@ namespace generate_fhir_prototype_bindings.Models
 {
     public class FhirType : FhirBasicNode
     {
+        #region Class Enums . . .
+
+        public enum StructureDefinitionKind
+        {
+            PrimitiveType = 0,
+            ComplexType,
+            Resource,
+            Logical
+        }
+
+        public string[] StructureDefinitionKindCodes = {
+            "primitive-type",
+            "complex-type",
+            "resource",
+            "logical"
+        };
+
+        #endregion Class Enums . . .
+
         #region Class Constants . . . 
 
         #endregion Class Constants . . .
@@ -182,8 +201,6 @@ namespace generate_fhir_prototype_bindings.Models
 
 
         #endregion Internal Functions . . .
-
-
 
     }
 

@@ -22,7 +22,7 @@ namespace generate_fhir_prototype_bindings
             // **** start timing ****
 
             Stopwatch timingWatch = Stopwatch.StartNew();
-
+            
             // **** initialize our manager ****
 
             FhirTypeManager.Init();

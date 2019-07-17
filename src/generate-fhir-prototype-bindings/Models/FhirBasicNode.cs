@@ -27,7 +27,7 @@ namespace generate_fhir_prototype_bindings.Models
         public string Name { get; set; }
 
         ///-------------------------------------------------------------------------------------------------
-        /// <summary>Gets or sets the name capitalized (for joining into camel case).</summary>
+        /// <summary>Gets or sets the name capitalized (for joining into pascal case).</summary>
         ///
         /// <value>The name capitalized.</value>
         ///-------------------------------------------------------------------------------------------------

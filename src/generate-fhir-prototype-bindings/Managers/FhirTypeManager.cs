@@ -69,6 +69,19 @@ namespace generate_fhir_prototype_bindings.Managers
         }
 
         ///-------------------------------------------------------------------------------------------------
+        /// <summary>Trim for matching names.</summary>
+        ///
+        /// <remarks>Gino Canessa, 7/22/2019.</remarks>
+        ///
+        /// <param name="matchingNames">List of names of the matchings.</param>
+        ///-------------------------------------------------------------------------------------------------
+
+        public static void TrimForMatchingNames(string matchingNames)
+        {
+            _instance._TrimForMatchingNames(matchingNames);
+        }
+
+        ///-------------------------------------------------------------------------------------------------
         /// <summary>Determine if 'name' exists.</summary>
         ///
         /// <remarks>Gino Canessa, 7/11/2019.</remarks>
@@ -112,61 +125,6 @@ namespace generate_fhir_prototype_bindings.Managers
                 );
         }
 
-        ///-------------------------------------------------------------------------------------------------
-        /// <summary>Process a primitive type from an XML Spreadsheet.</summary>
-        ///
-        /// <remarks>Gino Canessa, 7/9/2019.</remarks>
-        ///
-        /// <param name="name">           The name.</param>
-        /// <param name="baseType">       Type of the base.</param>
-        /// <param name="comment">        The comment.</param>
-        /// <param name="isFhirPrimitive">True if is primitive, false if not.</param>
-        /// <param name="sourceFilename"> Filename of the source file.</param>
-        ///-------------------------------------------------------------------------------------------------
-
-        private void _ProcessSpreadsheetType(
-                                            string name,
-                                            string baseType,
-                                            string comment,
-                                            bool isFhirPrimitive,
-                                            string sourceFilename
-                                            )
-        {
-            // **** skip empty or excluded fields ****
-
-            if ((string.IsNullOrEmpty(name)) || (name[0] == '!'))
-            {
-                return;
-            }
-
-            // **** create a type object for this primitive ****
-
-            FhirType node = FhirType.CreateFhirType(
-                name, 
-                name,
-                baseType, 
-                comment, 
-                sourceFilename, 
-                isFhirPrimitive
-                );
-
-            // **** add this primitive to our dictionary and list ****
-
-            if (node != null)
-            {
-                if (_fhirTypeDict.ContainsKey(name) && _fhirTypeDict[name] == null)
-                {
-                    _fhirTypeDict.Remove(name);
-                }
-
-                _fhirTypeDict.Add(name, node);
-
-                if (isFhirPrimitive)
-                {
-                    _fhirPrimitives.Add(name);
-                }
-            }
-        }
 
         ///-------------------------------------------------------------------------------------------------
         /// <summary>Process an XML Spreadsheet data element.</summary>
@@ -198,6 +156,203 @@ namespace generate_fhir_prototype_bindings.Managers
                 isPrimitive, 
                 sourceFilename
                 );
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Output type script.</summary>
+        ///
+        /// <remarks>Gino Canessa, 7/8/2019.</remarks>
+        ///
+        /// <param name="writer">         The writer.</param>
+        /// <param name="outputNamespace">The output namespace.</param>
+        /// <param name="matchNames">     List of names of the matches.</param>
+        ///-------------------------------------------------------------------------------------------------
+
+        public static void OutputTypeScript(StreamWriter writer, string outputNamespace)
+        {
+            _instance._OutputTypeScript(writer, outputNamespace);
+        }
+
+        #endregion Class Interface . . .
+
+        #region Instance Interface . . .
+
+        #endregion Instance Interface . . .
+
+        #region Internal Functions . . .
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Trim for matching names.</summary>
+        ///
+        /// <remarks>Gino Canessa, 7/22/2019.</remarks>
+        ///
+        /// <param name="matchingNames">List of names of the matchings.</param>
+        ///-------------------------------------------------------------------------------------------------
+
+        private void _TrimForMatchingNames(string matchingNames)
+        {
+            if (string.IsNullOrEmpty(matchingNames))
+            {
+                return;
+            }
+
+            // **** grab an array for each name we need to match ***
+
+            string[] names = matchingNames.Split('|');
+
+            HashSet<string> typesToOutput = new HashSet<string>();
+            
+            // **** traverse our array and build the names we need ****
+
+            foreach (string name in names)
+            {
+                // **** add this name and all related names ****
+
+                AddNameForOutput(name, ref typesToOutput);
+            }
+
+            // **** grab all our type names (cannot remove from dictionary while traversing enumerator) ****
+
+            string[] knownTypes = _fhirTypeDict.Keys.ToArray<string>();
+
+            // **** remove everything from our dictionary that's not in our hash set ****
+
+            foreach (string typeName in knownTypes)
+            {
+                // **** check for this type being in our output set ****
+
+                if (typesToOutput.Contains(typeName))
+                {
+                    // **** leave this record ****
+
+                    continue;
+                }
+
+                // **** remove this record ****
+
+                _fhirTypeDict.Remove(typeName);
+
+                // **** check for primitives list ****
+
+                if (_fhirPrimitives.Contains(typeName))
+                {
+                    _fhirPrimitives.Remove(typeName);
+                }
+            }
+        }
+
+        private void AddNameForOutput(string name, ref HashSet<string> typesToOutput)
+        {
+            // **** check for no name (blank types) ****
+
+            if (string.IsNullOrEmpty(name))
+            {
+                return;
+            }
+
+            // **** check for already added ****
+
+            if (typesToOutput.Contains(name))
+            {
+                // **** nothing else to do ****
+
+                return;
+            }
+
+            // **** check for not containing this name ****
+
+            if (!_fhirTypeDict.ContainsKey(name))
+            {
+                // **** nothing else to do ****
+
+                return;
+            }
+
+            // **** add this name to the hash set ****
+
+            typesToOutput.Add(name);
+
+            // **** grab this node from our dictionary ****
+
+            FhirType fhirType = _fhirTypeDict[name];
+
+            // **** add this record's type to our output list ****
+
+            AddNameForOutput(fhirType.TypeName, ref typesToOutput);
+
+            // **** done if there are no properties ****
+
+            if ((fhirType.Properties == null) || (fhirType.Properties.Count == 0))
+            {
+                // **** nothing else to do here ****
+
+                return;
+            }
+
+            // **** traverse properties to add them ****
+
+            foreach (FhirProperty property in fhirType.Properties.Values)
+            {
+                // **** add this property's type ****
+
+                AddNameForOutput(property.TypeName, ref typesToOutput);
+            }
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Process a primitive type from an XML Spreadsheet.</summary>
+        ///
+        /// <remarks>Gino Canessa, 7/9/2019.</remarks>
+        ///
+        /// <param name="name">           The name.</param>
+        /// <param name="baseType">       Type of the base.</param>
+        /// <param name="comment">        The comment.</param>
+        /// <param name="isFhirPrimitive">True if is primitive, false if not.</param>
+        /// <param name="sourceFilename"> Filename of the source file.</param>
+        ///-------------------------------------------------------------------------------------------------
+
+        private void _ProcessSpreadsheetType(
+                                            string name,
+                                            string baseType,
+                                            string comment,
+                                            bool isFhirPrimitive,
+                                            string sourceFilename
+                                            )
+        {
+            // **** skip empty or excluded fields ****
+
+            if ((string.IsNullOrEmpty(name)) || (name[0] == '!'))
+            {
+                return;
+            }
+
+            // **** create a type object for this primitive ****
+
+            FhirType node = FhirType.CreateFhirType(
+                name,
+                name,
+                baseType,
+                comment,
+                sourceFilename,
+                isFhirPrimitive
+                );
+
+            // **** add this primitive to our dictionary and list ****
+
+            if (node != null)
+            {
+                if (_fhirTypeDict.ContainsKey(name) && _fhirTypeDict[name] == null)
+                {
+                    _fhirTypeDict.Remove(name);
+                }
+
+                _fhirTypeDict.Add(name, node);
+
+                if (isFhirPrimitive)
+                {
+                    _fhirPrimitives.Add(name);
+                }
+            }
         }
 
         ///-------------------------------------------------------------------------------------------------
@@ -431,7 +586,6 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 currentTypeNode = _fhirTypeDict[name];
             }
-
         }
 
         ///-------------------------------------------------------------------------------------------------
@@ -534,19 +688,6 @@ namespace generate_fhir_prototype_bindings.Managers
             }
         }
 
-        ///-------------------------------------------------------------------------------------------------
-        /// <summary>Output type script.</summary>
-        ///
-        /// <remarks>Gino Canessa, 7/8/2019.</remarks>
-        ///
-        /// <param name="writer">         The writer.</param>
-        /// <param name="outputNamespace">The output namespace.</param>
-        ///-------------------------------------------------------------------------------------------------
-
-        public static void OutputTypeScript(StreamWriter writer, string outputNamespace)
-        {
-            _instance._OutputTypeScript(writer, outputNamespace);
-        }
 
         ///-------------------------------------------------------------------------------------------------
         /// <summary>Output type script.</summary>
@@ -555,6 +696,7 @@ namespace generate_fhir_prototype_bindings.Managers
         ///
         /// <param name="writer">         The writer.</param>
         /// <param name="outputNamespace">The output namespace.</param>
+        /// <param name="matchNames">     List of names of the matches.</param>
         ///-------------------------------------------------------------------------------------------------
 
         private void _OutputTypeScript(StreamWriter writer, string outputNamespace)
@@ -644,13 +786,6 @@ namespace generate_fhir_prototype_bindings.Managers
             writer.Write($"}} // close module: {outputNamespace}\n");
         }
 
-        #endregion Class Interface . . .
-
-        #region Instance Interface . . .
-
-        #endregion Instance Interface . . .
-
-        #region Internal Functions . . .
 
         ///-------------------------------------------------------------------------------------------------
         /// <summary>Check or create instance.</summary>

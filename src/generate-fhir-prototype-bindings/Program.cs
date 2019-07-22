@@ -105,6 +105,9 @@ namespace generate_fhir_prototype_bindings
                 return;
             }
 
+            // **** trim our output to match requested types ****
+
+            FhirTypeManager.TrimForMatchingNames(options.TypesToOutput);
 
             // **** ****
 

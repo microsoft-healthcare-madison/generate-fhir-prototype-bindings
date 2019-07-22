@@ -23,6 +23,9 @@ namespace generate_fhir_prototype_bindings
         [Option("output-single", Default = true, HelpText = "Set to output a single file")]
         public bool OutputSingleFile { get; set; }
 
+        [Option("types-to-output", Default = "", HelpText = "'|' Separated list of resources/profiles/types to export (will include all necessary types below). E.g., Topic|Subscription")]
+        public string TypesToOutput { get; set; }
+
         #endregion Output Options . . .
 
         #region Language Options . . .

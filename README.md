@@ -1,5 +1,3 @@
-
-
 # generate-fhir-prototype-bindings
 
 A .Net Core utility to generate language bindings from FHIR sources for use in prototyping changes to FHIR resources.
@@ -16,6 +14,8 @@ A .Net Core utility to generate language bindings from FHIR sources for use in p
   --output-single         (Default: true) Set to output a single file
 
   --ts                    (Default: false) Generate TypeScript bindings
+
+  --types-to-output       (Default: ) '|' Separated list of resources/profiles/types to export (will include all necessary types below). E.g., Topic|Subscription
 
   --namespace             (Default: fhir) The Exported namespace or module name
 

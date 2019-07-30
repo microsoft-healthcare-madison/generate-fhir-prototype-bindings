@@ -7,6 +7,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Models\R4_CodeableConcept.cs" />
+    <Compile Remove="Models\R4_Coding.cs" />
+    <Compile Remove="Models\R4_ContactDetail.cs" />
+    <Compile Remove="Models\R4_ContactPoint.cs" />
+    <Compile Remove="Models\R4_Identifier.cs" />
+    <Compile Remove="Models\R4_Period.cs" />
+    <Compile Remove="Models\R4_Quantity.cs" />
+    <Compile Remove="Models\R4_Range.cs" />
+    <Compile Remove="Models\R4_StructureDefinition.cs" />
+    <Compile Remove="Models\R4_StructureDefinitionContext.cs" />
+    <Compile Remove="Models\R4_StructureDefinitionMapping.cs" />
+    <Compile Remove="Models\R4_UsageContext.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.5.0" />
   </ItemGroup>
 

@@ -156,7 +156,7 @@ namespace generate_fhir_prototype_bindings.Models
 
         private string GetTypeScriptStringBasic()
         {
-            return $"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\ntype {Name} = {TypeName};\n";
+            return $"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\nexport type {Name} = {TypeName};\n";
         }
 
         private string GetTypeScriptStringComplex()
@@ -167,15 +167,15 @@ namespace generate_fhir_prototype_bindings.Models
 
             if (string.IsNullOrEmpty(TypeName) || Name.Equals("Element"))
             {
-                sb.Append($"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\n{_typeScriptImplementationType} {Name} {{\n");
+                sb.Append($"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} {{\n");
             }
             else if (Name.Equals(TypeName, StringComparison.Ordinal))
             {
-                sb.Append($"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\n{_typeScriptImplementationType} {Name} extends Element {{\n");
+                sb.Append($"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} extends Element {{\n");
             }
             else
             {
-                sb.Append($"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\n{_typeScriptImplementationType} {Name} extends {TypeName} {{\n");
+                sb.Append($"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} extends {TypeName} {{\n");
             }
 
             // **** output the properties of this type (alphebetically) ****

@@ -12,6 +12,34 @@ namespace generate_fhir_prototype_bindings.Models
 
         #endregion Class Constants . . .
 
+        #region Class Enums . . .
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Values that represent language primitive types.</summary>
+        ///
+        /// <remarks>Gino Canessa, 7/31/2019.</remarks>
+        ///-------------------------------------------------------------------------------------------------
+
+        public enum LanguagePrimitiveType : int
+        {
+            None,
+            TypeString,
+            TypeNumber,
+            TypeBoolean,
+            TypeDateTime
+        }
+
+        /// <summary>The language primitive type names for C#.</summary>
+        public static string[] LanguagePrimitiveTypeNamesCS = {
+            "",
+            "string",
+            "decimal",
+            "bool",
+            "DateTime"
+        };
+
+        #endregion Class Enums . . .
+
         #region Class Variables . . .
 
         #endregion Class Variables . . .
@@ -84,10 +112,61 @@ namespace generate_fhir_prototype_bindings.Models
             return string.Empty;
         }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets C# string.</summary>
+        ///
+        /// <remarks>Gino Canessa, 7/31/2019.</remarks>
+        ///
+        /// <returns>The C# string.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        public virtual string GetCSharpString(Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, bool useLowerCaseName = false)
+        {
+            return string.Empty;
+        }
 
         #endregion Instance Interface . . .
 
         #region Internal Functions . . .
+
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets language primitive.</summary>
+        ///
+        /// <remarks>Gino Canessa, 7/31/2019.</remarks>
+        ///
+        /// <param name="typeName">Name of the type.</param>
+        ///
+        /// <returns>The language primitive.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        internal static LanguagePrimitiveType GetLanguagePrimitive(string typeName)
+        {
+            typeName = typeName.Trim().ToLower();
+
+            if (typeName.Equals("string", StringComparison.Ordinal))
+            {
+                return LanguagePrimitiveType.TypeString;
+            }
+
+            if (typeName.Equals("number", StringComparison.Ordinal))
+            {
+                return LanguagePrimitiveType.TypeNumber;
+            }
+
+            if (typeName.Equals("boolean", StringComparison.Ordinal))
+            {
+                return LanguagePrimitiveType.TypeBoolean;
+            }
+
+            if (typeName.Equals("datetime", StringComparison.Ordinal))
+            {
+                return LanguagePrimitiveType.TypeDateTime;
+            }
+
+            return LanguagePrimitiveType.None;
+        }
+
 
         #endregion Internal Functions . . .
 

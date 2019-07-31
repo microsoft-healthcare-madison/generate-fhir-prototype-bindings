@@ -9,11 +9,13 @@ A .Net Core utility to generate language bindings from FHIR sources for use in p
 ```
   -i, --fhir-directory    Required. FHIR Base Directory
 
-  -o, --output-path       Required. Path or filename for output
+  -o, --output-path       Required. Path or filename for output (will append appropriate extension if not provided)
 
   --output-single         (Default: true) Set to output a single file
 
   --ts                    (Default: false) Generate TypeScript bindings
+
+  --cs                    (Default: false) Generate C# bindings
 
   --types-to-output       (Default: ) '|' Separated list of resources/profiles/types to export (will include all necessary types below). E.g., Topic|Subscription
 
@@ -36,8 +38,7 @@ dotnet generate-fhir-prototype-bindings.dll -i /path/to/fhir -o /path/to/output.
 - Parse FHIR structure definitions.
 - Specify specific XMLs to parse (to replace content from structure definitions).
 - Output multiple files.
-- Add additional language support (C#, Java).
-- Export a limited tree (e.g., only types necessary for a specified list of resources).
+- Add additional language support (Java).
 
 
 ## Contributing
@@ -49,7 +50,7 @@ When you submit a pull request, a CLA-bot will automatically determine whether y
 a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
 provided by the bot. You will only need to do this once across all repos using our CLA.
 
-There are many other ways to contribute to FHIR Server for Azure.
+There are many other ways to contribute:
 * [Submit bugs](https://github.com/microsoft-healthcare-madison/generate-fhir-prototype-bindings/issues) and help us verify fixes as they are checked in.
 * Review the [source code changes](https://github.com/microsoft-healthcare-madison/generate-fhir-prototype-bindings/pulls).
 * Engage with users and developers on [Official FHIR Zulip](https://chat.fhir.org/)

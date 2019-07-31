@@ -2,7 +2,7 @@
   "profiles": {
     "generate-fhir-prototype-bindings": {
       "commandName": "Project",
-      "commandLineArgs": "-i c:/git/fhir-argo-subscription -o c:/temp/convert/fhir.ts --ts --types-to-output Topic|Subscription|"
+      "commandLineArgs": "-i c:/git/fhir-argo-subscription -o c:/temp/convert/fhir --cs --ts --types-to-output Topic|Subscription|Bundle"
     }
   }
 }

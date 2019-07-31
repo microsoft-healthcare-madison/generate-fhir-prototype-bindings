@@ -17,7 +17,7 @@ namespace generate_fhir_prototype_bindings
 
         #region Ouput Options . . .
 
-        [Option('o', "output-path", Required = true, HelpText = "Path or filename for output")]
+        [Option('o', "output-path", Required = true, HelpText = "Path or filename for output (will append appropriate extension if not provided)")]
         public string OutputFile { get; set; }
 
         [Option("output-single", Default = true, HelpText = "Set to output a single file")]
@@ -32,6 +32,9 @@ namespace generate_fhir_prototype_bindings
 
         [Option("ts", Default = false, Hidden = false, HelpText = "Generate TypeScript bindings")]
         public bool LanguageTypeScript { get; set; }
+
+        [Option("cs", Default = false, Hidden = false, HelpText = "Generate C# bindings")]
+        public bool LanguageCSharp { get; set; }
 
         #endregion Language Options . . .
 

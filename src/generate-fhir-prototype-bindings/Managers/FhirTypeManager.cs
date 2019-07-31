@@ -173,6 +173,11 @@ namespace generate_fhir_prototype_bindings.Managers
             _instance._OutputTypeScript(writer, outputNamespace);
         }
 
+        public static void OutputCSharp(StreamWriter writer, string outputNamespace)
+        {
+            _instance._OutputCSharp(writer, outputNamespace);
+        }
+
         #endregion Class Interface . . .
 
         #region Instance Interface . . .
@@ -602,12 +607,12 @@ namespace generate_fhir_prototype_bindings.Managers
         ///-------------------------------------------------------------------------------------------------
 
         private void AddNodesForFieldTypeArray(
-                                                        string name,
-                                                        string baseType,
-                                                        string comment,
-                                                        string cardinality,
-                                                        FhirType fhirType
-                                                        )
+                                                string name,
+                                                string baseType,
+                                                string comment,
+                                                string cardinality,
+                                                FhirType fhirType
+                                                )
         {
             // **** parse out the array indicator ****
 
@@ -784,6 +789,99 @@ namespace generate_fhir_prototype_bindings.Managers
             // **** close our module ****
 
             writer.Write($"}} // close module: {outputNamespace}\n");
+        }
+
+
+        private void _OutputCSharp(StreamWriter writer, string outputNamespace)
+        {
+            // **** write our header ****
+
+            writer.Write($"/** GENERATED FILE on: {DateTime.Now} **/\n\n");
+            writer.Write("using System;\nusing System.Collections.Generic;\n\n");
+
+            // **** start our namespace ****
+
+            writer.Write($"namespace {outputNamespace}\n{{\n");
+
+            Dictionary<string, FhirBasicNode.LanguagePrimitiveType> languagePrimitiveDict = new Dictionary<string, FhirBasicNode.LanguagePrimitiveType>();
+
+            // **** first loop is to discover the primitive types ****
+
+            foreach (string primitiveName in _fhirPrimitives)
+            {
+                // **** grab our node ****
+
+                FhirType node = _fhirTypeDict[primitiveName];
+
+                // **** skip what we do not want ****
+
+                //if ((node.IsCircular) || (node.Properties.Count != 0))
+                if (node.Properties.Count != 0)
+                {
+                    //Console.WriteLine($"Skipping primitive: {node.Name}, Properties: {node.Properties.Count}, Circular: {node.IsCircular}");
+                    continue;
+                }
+
+                // **** check for a language primitive ****
+
+                if (node.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None)
+                {
+                    // **** add to our lookup dictionary ****
+
+                    languagePrimitiveDict.Add(node.Name.Trim().ToLower(), node.LanguagePrimitive);
+
+                    // **** don't do anything else with this type ****
+
+                    continue;
+                }
+            }
+
+            // **** force add any missing primitives we need to change ****
+
+            if (!languagePrimitiveDict.ContainsKey("number"))
+            {
+                languagePrimitiveDict.Add("number", FhirBasicNode.LanguagePrimitiveType.TypeNumber);
+            }
+
+            if (!languagePrimitiveDict.ContainsKey("datetime"))
+            {
+                languagePrimitiveDict.Add("datetime", FhirBasicNode.LanguagePrimitiveType.TypeDateTime);
+            }
+
+            // **** output the our types ****
+
+            List<string> nodeNames = _fhirTypeDict.Keys.ToList<string>();
+            nodeNames.Sort();
+
+            foreach (string nodeName in nodeNames)
+            {
+                // **** grab our node ****
+
+                FhirType node = _fhirTypeDict[nodeName];
+
+                if (node == null)
+                {
+                    continue;
+                }
+
+                // **** skip circular references and primitives ****
+
+                //if ((node.IsCircular) || (node.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None))
+                if (node.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None)
+                { 
+                    //Console.WriteLine($"Skipping node: {node.Name}, Properties: {node.Properties.Count}, Circular: {node.IsCircular}, Primitive: {node.LanguagePrimitive}");
+
+                    continue;
+                }
+
+                // **** output to our file ****
+
+                writer.Write(node.GetCSharpString(languagePrimitiveDict));
+            }
+
+            // **** close our module ****
+
+            writer.Write($"}} // close namespace: {outputNamespace}\n");
         }
 
 

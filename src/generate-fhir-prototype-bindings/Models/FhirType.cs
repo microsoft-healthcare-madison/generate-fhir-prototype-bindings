@@ -4,8 +4,9 @@ using System.ComponentModel;
 using System.Text;
 using System.Linq;
 
+
 namespace generate_fhir_prototype_bindings.Models
-{
+{ 
     public class FhirType : FhirBasicNode
     {
         #region Class Enums . . .
@@ -61,6 +62,14 @@ namespace generate_fhir_prototype_bindings.Models
 
         public bool IsFhirPrimitive { get; set; }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets or sets the language primitive.</summary>
+        ///
+        /// <value>The language primitive.</value>
+        ///-------------------------------------------------------------------------------------------------
+
+        public LanguagePrimitiveType LanguagePrimitive { get; set; }
+
         #endregion Instance Variables . . .
 
         #region Constructors . . .
@@ -115,6 +124,7 @@ namespace generate_fhir_prototype_bindings.Models
                 SourceFilename = sourceFilename,
                 Properties = new Dictionary<string, FhirProperty>(),
                 IsFhirPrimitive = isFhirPrimitive,
+                LanguagePrimitive = GetLanguagePrimitive(typeName)
             };
 
             return node;
@@ -148,34 +158,83 @@ namespace generate_fhir_prototype_bindings.Models
             return GetTypeScriptStringComplex();
         }
 
+        public override string GetCSharpString(Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, bool useLowerCaseName = false)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            string comment = Comment.Replace("\n", "\n/// ");
+
+            // **** start with the interface open ****
+
+            if (string.IsNullOrEmpty(TypeName) || Name.Equals("Element"))
+            {
+                sb.Append($"\t///<summary>\n\t///{comment}\n\t///</summary>\n\t///<source-file>{SourceFilename}.xml</source-file>\n\tpublic class {NameCapitalized}\n\t{{\n");
+            }
+            else if (Name.Equals(TypeName, StringComparison.Ordinal))
+            {
+                sb.Append($"\t///<summary>\n\t///{comment}\n\t///</summary>\n\t///<source-file>{SourceFilename}.xml</source-file>\n\tpublic class {NameCapitalized} : Element\n\t{{\n");
+            }
+            else
+            {
+                sb.Append($"\t///<summary>\n\t///{comment}\n\t///</summary>\n\t///<source-file>{SourceFilename}.xml</source-file>\n\tpublic class {NameCapitalized} : {TypeName}\n\t{{\n");
+            }
+
+            // **** gram our name lower for fast comparison ****
+
+            string nameLower = Name.ToLower();
+
+            // **** output the properties of this type (alphebetically) ****
+
+            List<string> nodeNames = Properties.Keys.ToList<string>();
+            nodeNames.Sort();
+
+            foreach (string name in nodeNames)
+            {
+                // **** append this field's string ****
+
+                sb.Append(Properties[name].GetCSharpString(languagePrimitiveDict, name.Equals(nameLower, StringComparison.Ordinal)));
+            }
+
+            // **** close our interface ****
+
+            sb.Append("\t}\n");
+
+            // **** return our string ****
+
+            return sb.ToString();
+        }
+
 
         #endregion Instance Interface . . .
 
         #region Internal Functions . . .
-
-
+        
         private string GetTypeScriptStringBasic()
         {
-            return $"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\nexport type {Name} = {TypeName};\n";
+
+            string comment = Comment.Replace("\n", "\n * ");
+            return $"/**\n * {comment}\n * From: {SourceFilename}.xml\n */\nexport type {Name} = {TypeName};\n";
         }
 
         private string GetTypeScriptStringComplex()
         {
             StringBuilder sb = new StringBuilder();
 
+            string comment = Comment.Replace("\n", "\n * ");
+
             // **** start with the interface open ****
 
             if (string.IsNullOrEmpty(TypeName) || Name.Equals("Element"))
             {
-                sb.Append($"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} {{\n");
+                sb.Append($"/**\n * {comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} {{\n");
             }
             else if (Name.Equals(TypeName, StringComparison.Ordinal))
             {
-                sb.Append($"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} extends Element {{\n");
+                sb.Append($"/**\n * {comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} extends Element {{\n");
             }
             else
             {
-                sb.Append($"/**\n * {Comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} extends {TypeName} {{\n");
+                sb.Append($"/**\n * {comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} extends {TypeName} {{\n");
             }
 
             // **** output the properties of this type (alphebetically) ****

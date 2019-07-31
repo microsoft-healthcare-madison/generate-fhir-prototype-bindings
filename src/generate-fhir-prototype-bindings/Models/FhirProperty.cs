@@ -136,18 +136,48 @@ namespace generate_fhir_prototype_bindings.Models
                 return "";
             }
 
+            string comment = Comment.Replace("\n", "\n\t * ");
             string OptionalFlagString = IsOptional ? "?" : "";
 
             // **** ****
 
             if (IsArray)
             {
-                return $"\t/**\n\t * {Comment}\n\t */\n\t{Name}{OptionalFlagString}: {TypeName}[];\n" +
+                return $"\t/**\n\t * {comment}\n\t */\n\t{Name}{OptionalFlagString}: {TypeName}[];\n" +
                        $"\t/**\n\t * May contain extended information for property: '{Name}'\n\t */\n\t_{Name}?: Element[];\n";
             }
 
-            return $"\t/**\n\t * {Comment}\n\t */\n\t{Name}{OptionalFlagString}: {TypeName};\n" +
+            return $"\t/**\n\t * {comment}\n\t */\n\t{Name}{OptionalFlagString}: {TypeName};\n" +
                    $"\t/**\n\t * May contain extended information for property: '{Name}'\n\t */\n\t_{Name}?: Element;\n";
+        }
+
+        public override string GetCSharpString(Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, bool useLowerCaseName = false)
+        {
+            // **** skip fields with no type (are defined in base object) ****
+
+            if (string.IsNullOrEmpty(TypeName))
+            {
+                return "";
+            }
+
+            string name = useLowerCaseName ? Name : NameCapitalized;
+            string comment = Comment.Replace("\n", "\n\t\t/// ");
+            string typeName = TypeName.Trim().ToLower();
+
+            // **** check for overriding the type name ****
+
+            typeName = languagePrimitiveDict.ContainsKey(typeName) ? LanguagePrimitiveTypeNamesCS[(int)languagePrimitiveDict[typeName]] : TypeName;
+
+            // **** ****
+
+            if (IsArray)
+            {
+                return $"\t\t///<summary>{comment}</summary>\n\t\tpublic {typeName}[] {name} {{ get; set; }}\n" +
+                       $"\t\t///<summary>May contain extended information for property: '{name}'</summary>\n\t\tpublic Element[] _{name} {{ get; set; }}\n";
+            }
+
+            return $"\t\t///<summary>{comment}</summary>\n\t\tpublic {typeName} {name} {{ get; set; }}\n" +
+                $"\t\t///<summary>May contain extended information for property: '{name}'</summary>\n\t\tpublic Element _{name} {{ get; set; }}\n";
         }
 
 

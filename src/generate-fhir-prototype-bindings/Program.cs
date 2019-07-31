@@ -109,27 +109,88 @@ namespace generate_fhir_prototype_bindings
 
             FhirTypeManager.TrimForMatchingNames(options.TypesToOutput);
 
+            // **** check for writing typescript ****
+
+            if (options.LanguageTypeScript)
+            {
+                WriteTypeScript(options);
+            }
+
+            if (options.LanguageCSharp)
+            {
+                WriteCSharp(options);
+            }
+
+            // **** done ****
+
+
+            Console.WriteLine("...Done!");
+        }
+
+        static void WriteCSharp(Options options)
+        {
+            string filename;
+
+            // **** check for having an extension ****
+
+            if (Path.HasExtension(options.OutputFile))
+            {
+                filename = options.OutputFile;
+            }
+            else
+            {
+                filename = $"{options.OutputFile}.cs";
+            }
+
             // **** ****
 
-            Console.WriteLine($"Writing export file: {options.OutputFile}");
+            Console.WriteLine($"Writing C# file: {filename}");
 
             // **** start our file ****
 
-            using (StreamWriter writer = new StreamWriter(options.OutputFile))
+            using (StreamWriter writer = new StreamWriter(filename))
             {
+                // **** output our data ****
 
+                FhirTypeManager.OutputCSharp(writer, options.OutputNamespace);
+            }
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Writes the TypeScript file</summary>
+        ///
+        /// <remarks>Gino Canessa, 7/31/2019.</remarks>
+        ///
+        /// <param name="options">Options for controlling the operation.</param>
+        ///-------------------------------------------------------------------------------------------------
+
+        static void WriteTypeScript(Options options)
+        {
+            string filename;
+
+            // **** check for having an extension ****
+
+            if (Path.HasExtension(options.OutputFile))
+            {
+                filename = options.OutputFile;
+            }
+            else
+            {
+                filename = $"{options.OutputFile}.ts";
+            }
+
+            // **** ****
+
+            Console.WriteLine($"Writing TypeScript file: {filename}");
+
+            // **** start our file ****
+
+            using (StreamWriter writer = new StreamWriter(filename))
+            {
                 // **** output our data ****
 
                 FhirTypeManager.OutputTypeScript(writer, options.OutputNamespace);
-
-                //if (!ProcessExtendedPrimitives(fhirDirectory, writer))
-                //{
-                //    Console.WriteLine("Failed to generate base primitive types");
-                //    return;
-                //}
             }
-
-            Console.WriteLine("...Done!");
         }
 
         static void AddMissingTypes()

@@ -13,6 +13,15 @@ namespace generate_fhir_prototype_bindings
         [Option('i', "fhir-directory", Required = true, HelpText = "FHIR Base Directory")]
         public string FhirDirectory { get; set; }
 
+        [Option("only-structure-defs", Default = true, HelpText = "(Default) Set to use only Structure Definitions (.../fhir/publish)")]
+        public bool UseOnlyStructureDefinitions { get; set; }
+
+        [Option("only-xml-sheets", Default = false, HelpText = "Set to use only XML Spreadsheets (.../fhir/source)")]
+        public bool UseOnlyXmlSpreadsheets { get; set; }
+
+        [Option("types-for-xml-sheets", Default ="", HelpText = "'|' Separated list of resources to read from XML files. E.g., Topic|Subscription")]
+        public string TypesForXmlSpreadsheets { get; set; }
+
         #endregion Input Options
 
         #region Ouput Options . . .

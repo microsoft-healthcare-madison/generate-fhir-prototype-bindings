@@ -1,5 +1,7 @@
 ﻿using CommandLine;
+using fhir;
 using generate_fhir_prototype_bindings.Managers;
+using Newtonsoft.Json;
 using System;
 using System.Data;
 using System.Diagnostics;
@@ -69,45 +71,36 @@ namespace generate_fhir_prototype_bindings
                 File.Delete(options.OutputFile);
             }
 
-            Console.WriteLine("Processing basic primitives");
+            // **** process Published Structure Definitions ****
 
-            // **** process primitive types ****
-
-            if (!ProcessBasePrimitives(options.FhirDirectory))
+            if (!options.UseOnlyXmlSpreadsheets)
             {
-                Console.WriteLine("Failed to process base primitive types");
-                return;
+                ProcessJsonStructureDefinitions(options);
             }
 
-            Console.WriteLine("...Done!");
+            // **** process XML spreadsheets (if necessary) ****
 
-            Console.WriteLine("Processing DataTypes");
-
-            // **** process extended primitive types ****
-
-            if (!ProcessExtendedPrimitives(options.FhirDirectory))
+            if (options.UseOnlyXmlSpreadsheets)
             {
-                Console.WriteLine("Failed to process extended primitive types");
-                return;
+                ProcessXmlSpreadsheets(options);
             }
 
-            Console.WriteLine("...Done!");
+            // **** check for manual spreadsheet overrides ****
 
-            // **** add missing/undefined types ****
-
-            AddMissingTypes();
-
-            // **** process all other resource types ****
-
-            if (!ProcessResources(options.FhirDirectory))
+            if ((!options.UseOnlyXmlSpreadsheets) && 
+                (!string.IsNullOrEmpty(options.TypesForXmlSpreadsheets)))
             {
-                Console.WriteLine("Failed to process resources");
-                return;
+                ProcessXmlSpreadsheetsFor(options);
             }
 
             // **** trim our output to match requested types ****
 
             FhirTypeManager.TrimForMatchingNames(options.TypesToOutput);
+
+            // **** do ResourceType checks ****
+
+            while (FhirTypeManager.PerformResourceTypeChecks() != 0)
+            { }
 
             // **** check for writing typescript ****
 
@@ -123,9 +116,501 @@ namespace generate_fhir_prototype_bindings
 
             // **** done ****
 
-
             Console.WriteLine("...Done!");
         }
+
+        static bool ProcessJsonStructureDefinitions(Options options)
+        {
+            string dir = Path.Combine(options.FhirDirectory, "publish");
+
+            // **** check for this directory existing ****
+
+            if (!Directory.Exists(dir))
+            {
+                Console.WriteLine("Publish directory not found! Skipping Structure Definitions");
+                return false;
+            }
+
+            Console.WriteLine("Processing Structure Definitions");
+
+
+            // **** traverse the canonical JSON files in the Publish Directory ****
+
+            string[] files = Directory.GetFiles(dir, "*.canonical.json", SearchOption.TopDirectoryOnly);
+
+            foreach (string filename in files)
+            {
+                // **** process this file ****
+
+                ProcessStructureDefinitionJsonFile(filename);
+            }
+
+            // **** ok ****
+
+            return true;
+        }
+
+
+        static bool ProcessStructureDefinitionJsonFile(string filename)
+        {
+            // **** for now, skip extensions ****
+
+            if (Path.GetFileName(filename).StartsWith("extension-"))
+            {
+                return true;
+            }
+
+            // **** read the contents of the file ****
+
+            string contents = File.ReadAllText(filename);
+
+            // **** parse into an object we can work with ****
+
+            fhir.StructureDefinition sd = JsonConvert.DeserializeObject<fhir.StructureDefinition>(contents);
+
+            // **** check for elements ****
+
+            if ((sd.Snapshot == null) || (sd.Snapshot.Element == null) || (sd.Snapshot.Element.Length == 0))
+            {
+                // **** nothing to do ****
+
+                return false;
+            }
+
+            // **** process each kind of definition type ****
+
+            switch (sd.Kind)
+            {
+                case "primitive-type":
+                    ProcessStructurePrimitiveType(sd, filename);
+                    break;
+
+                case "complex-type":
+
+                    //Console.WriteLine($"Complex type: {sd.Name} - {filename}");
+                    ProcessStructureType(sd, filename);
+                    break;
+
+                case "resource":
+                    ProcessStructureType(sd, filename);
+
+                    break;
+
+                case "logical":
+                    Console.WriteLine($"Skipping logical type: {sd.Name} ({filename})");
+                    break;
+
+                default:
+                    Console.WriteLine($"Unknown structureDefinition.kind: {sd.Kind} for {sd.Name} ({filename})");
+                    break;
+            }
+
+            // **** success ****
+
+            return true;
+        }
+
+        static void ProcessStructureType(fhir.StructureDefinition sd, string filename)
+        {
+            // **** figure out if this is a derived type ****
+
+            string baseType = GetJsonTypeFromStructure(sd);
+
+            if (string.IsNullOrEmpty(baseType))
+            {
+                // **** use the base type ****
+
+                baseType = sd.Type;
+            }
+
+            // **** reformat circular references ****
+
+            if (baseType.Equals(sd.Id, StringComparison.Ordinal))
+            {
+                baseType = "";
+            }
+
+            // **** traverse the elements ****
+
+            for (int elementIndex = 0; elementIndex < sd.Snapshot.Element.Length; elementIndex++)
+            {
+                fhir.ElementDefinition element = sd.Snapshot.Element[elementIndex];
+
+                // **** check for initial element (need to change type) ****
+
+                if (elementIndex == 0)
+                {
+                    // **** use the base type ****
+
+                    FhirTypeManager.ProcessSpreadsheetDataElement(
+                        sd.Name,
+                        baseType,
+                        sd.Description,
+                        $"{element.Min}..{element.Max}",
+                        false,
+                        filename
+                        );
+
+                    // **** check for defining a base type ****
+
+                    if (!element.Id.Equals(sd.Name, StringComparison.Ordinal))
+                    {
+                        // **** make sure this node exists too ****
+
+                        FhirTypeManager.ProcessSpreadsheetDataElement(
+                            element.Id,
+                            element.Base.Path,
+                            element.Definition,
+                            $"{element.Min}..{element.Max}",
+                            false,
+                            filename
+                            );
+                    }
+
+                    // **** no more processing for this entry ****
+
+                    continue;
+                }
+
+                // **** check for type information ****
+
+                if ((element.Type != null) && (element.Type.Length > 0) && (element.Type[0].Code != null))
+                {
+                    // **** traverse the types for this element ****
+
+                    foreach (ElementDefinitionType defType in element.Type)
+                    {
+                        // **** remove array info from name (if necessary) ****
+
+                        string elementName = element.Path.Replace(
+                            "[x]",
+                            string.Concat(
+                                defType.Code.Substring(0, 1).ToUpper(),
+                                defType.Code.Substring(1)
+                                )
+                            );
+
+                        // **** process this field ****
+
+                        FhirTypeManager.ProcessSpreadsheetDataElement(
+                            elementName,
+                            defType.Code,
+                            element.Definition,
+                            $"{element.Min}..{element.Max}",
+                            false,
+                            filename
+                            );
+                    }
+                }
+
+                // **** check for extension type information ****
+
+                else if ((element.Type != null) && (element.Type.Length > 0) && (element.Type[0]._Code != null))
+                {
+                    // **** find the json type ****
+
+                    string propertyType = "";
+
+                    foreach (Extension ext in element.Type[0]._Code.Extension)
+                    {
+                        if (ext.Url.EndsWith("json-type"))
+                        {
+                            propertyType = ext.ValueString;
+                            break;
+                        }
+                    }
+
+                    // **** process this field ****
+
+                    FhirTypeManager.ProcessSpreadsheetDataElement(
+                        element.Path,
+                        propertyType,
+                        element.Definition,
+                        $"{element.Min}..{element.Max}",
+                        false,
+                        filename
+                        );
+                }
+
+                // **** use base path ****
+
+                else
+                {
+                    // **** grab the assumed type ****
+
+                    string propertyType = "";
+
+                    // **** check for override ****
+
+                    if (!string.IsNullOrEmpty(element.ContentReference))
+                    {
+                        propertyType = FhirPathToCamelCase(element.ContentReference);
+                    }
+
+                    // **** assume base path if nothing else filled out ****
+
+                    if (string.IsNullOrEmpty(propertyType))
+                    {
+                        propertyType = FhirPathToCamelCase(element.Base.Path);
+                    }
+
+                    // **** process this field ****
+
+                    FhirTypeManager.ProcessSpreadsheetDataElement(
+                        element.Path,
+                        propertyType,
+                        element.Definition,
+                        $"{element.Min}..{element.Max}",
+                        false,
+                        filename
+                        );
+                }
+            }
+        }
+
+        private static string FhirPathToCamelCase(string path)
+        {
+            string value = "";
+            string[] parts = path.Split('.');
+
+            foreach (string part in parts)
+            {
+                value += string.Concat(part.Substring(0, 1).ToUpper(), part.Substring(1));
+            }
+
+            return value;
+        }
+
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Process the structure primitive type.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/12/2019.</remarks>
+        ///
+        /// <param name="sd">      The SD.</param>
+        /// <param name="filename">Filename of the file.</param>
+        ///-------------------------------------------------------------------------------------------------
+
+        static void ProcessStructurePrimitiveType(fhir.StructureDefinition sd, string filename)
+        {
+            //Console.WriteLine($"Primitive: {sd.Name}:{GetJsonTypeFromStructure(sd)} - {filename}");
+
+            // **** add our type ****
+
+            FhirTypeManager.ProcessSpreadsheetType(sd.Name, GetPrimitiveJsonTypeFromStructure(sd), sd.Description, true, filename);
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets JSON type from structure.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/12/2019.</remarks>
+        ///
+        /// <param name="sd">The SD.</param>
+        ///
+        /// <returns>The JSON type from structure.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        private static string GetJsonTypeFromStructure(fhir.StructureDefinition sd)
+        {
+            // **** check for a base ****
+
+            if (!string.IsNullOrEmpty(sd.BaseDefinition))
+            {
+                // **** remove most of the URL ****
+
+                return sd.BaseDefinition.Substring(sd.BaseDefinition.LastIndexOf('/') + 1);
+            }
+
+            // **** cannot find ****
+
+            return null;
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets JSON type from structure.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/12/2019.</remarks>
+        ///
+        /// <param name="sd">The SD.</param>
+        ///
+        /// <returns>The JSON type from structure.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        private static string GetPrimitiveJsonTypeFromStructure(fhir.StructureDefinition sd)
+        {
+            // **** build our value element name ****
+
+            string name = $"{sd.Id}.value";
+
+            // **** loop until we find the type ****
+
+            foreach (fhir.ElementDefinition element in sd.Snapshot.Element)
+            {
+                if (element.Id.Equals(name, StringComparison.Ordinal))
+                {
+                    // **** use this element ***
+
+                    return GetJsonTypeFromElement(element);
+                }
+            }
+
+            // **** cannot find ****
+
+            return "";
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets JSON type from element.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/12/2019.</remarks>
+        ///
+        /// <param name="def">The definition.</param>
+        ///
+        /// <returns>The JSON type from element.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        private static string GetJsonTypeFromElement(fhir.ElementDefinition def)
+        {
+            // **** ****
+
+            foreach (fhir.ElementDefinitionType type in def.Type)
+            {
+                // **** check for the json type ****
+
+                if ((type._Code != null) && (type._Code.Extension != null) && (type._Code.Extension.Length > 0))
+                {
+                    // **** find the correct one ****
+
+                    foreach (fhir.Extension ext in type._Code.Extension)
+                    {
+                        if (ext.Url.EndsWith("json-type"))
+                        {
+                            // **** return this type ****
+
+                            return ext.ValueString;
+                        }
+                    }
+                }
+            }
+
+            // **** all else fails, default to string ****
+
+            return "string";
+        }
+        
+        static bool ProcessXmlSpreadsheetsFor(Options options)
+        {
+            string dir = Path.Combine(options.FhirDirectory, "source");
+
+            // **** check for this directory existing ****
+
+            if (!Directory.Exists(dir))
+            {
+                Console.WriteLine("Source directory not found! Skipping XML Spreadsheets");
+                return false;
+            }
+
+            // **** build our list of types to include ****
+
+            string[] types = options.TypesForXmlSpreadsheets.Split('|');
+
+            // **** traverse the types we want ****
+
+            foreach (string typeName in types)
+            {
+                // **** build the filename we expect ****
+
+                string filename = Path.Combine(options.FhirDirectory, "source", typeName, $"{typeName}-spreadsheet.xml");
+
+                // **** check for this file ****
+
+                if (!File.Exists(filename))
+                {
+                    Console.WriteLine($"Could not find {filename}, will not process XML spreadsheet!");
+                    continue;
+                }
+
+                // **** remove this type (and subtypes) from the current list ****
+
+                FhirTypeManager.RemoveType(typeName);
+
+                // **** process this file ****
+
+                ProcessResourceXmlFile(filename, false);
+            }
+
+            // **** ok ****
+
+            return true;
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Process the XML spreadsheets described by options.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/12/2019.</remarks>
+        ///
+        /// <param name="options">Options for controlling the operation.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        static bool ProcessXmlSpreadsheets(Options options)
+        {
+            string dir = Path.Combine(options.FhirDirectory, "source");
+
+            // **** check for this directory existing ****
+
+            if (!Directory.Exists(dir))
+            {
+                Console.WriteLine("Source directory not found! Skipping XML Spreadsheets");
+                return false;
+            }
+
+            Console.WriteLine("Processing basic primitives");
+
+            // **** process primitive types ****
+
+            if (!ProcessBasePrimitives(options.FhirDirectory))
+            {
+                Console.WriteLine("Failed to process base primitive types");
+                return false;
+            }
+
+            Console.WriteLine("Processing DataTypes");
+
+            // **** process extended primitive types ****
+
+            if (!ProcessExtendedPrimitives(options.FhirDirectory))
+            {
+                Console.WriteLine("Failed to process extended primitive types");
+                return false;
+            }
+
+            // **** add missing/undefined types ****
+
+            AddMissingTypes();
+
+            // **** process all other resource types ****
+
+            if (!ProcessResources(options.FhirDirectory))
+            {
+                Console.WriteLine("Failed to process resources");
+                return false;
+            }
+
+            // **** ok ****
+
+            return true;
+        }
+
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Writes a C#.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/12/2019.</remarks>
+        ///
+        /// <param name="options">Options for controlling the operation.</param>
+        ///-------------------------------------------------------------------------------------------------
 
         static void WriteCSharp(Options options)
         {
@@ -335,13 +820,14 @@ namespace generate_fhir_prototype_bindings
             {
                 // **** get the filename part ****
 
-                string filenamePart = Path.GetFileNameWithoutExtension(filename).ToLower();
+                //string filenamePart = Path.GetFileNameWithoutExtension(filename).ToLower();
+                string filenamePart = Path.GetFileName(filename).ToLower();
 
                 // **** check for files that must be processed first or last ****
 
-                if (filenamePart.Equals("primitives", StringComparison.Ordinal) ||
-                    filenamePart.Equals("extension", StringComparison.Ordinal) ||
-                    filenamePart.Equals("element", StringComparison.Ordinal))
+                if (filenamePart.Equals("primitives.xml", StringComparison.Ordinal) ||
+                    filenamePart.Equals("extension.xml", StringComparison.Ordinal) ||
+                    filenamePart.Equals("element.xml", StringComparison.Ordinal))
                 {
                     // **** skip ****
 
@@ -407,24 +893,10 @@ namespace generate_fhir_prototype_bindings
                 ProcessDataElementsTable(
                     ds.Tables["Data Elements"],
                     isPrimitive,
-                    Path.GetFileNameWithoutExtension(filename),
+                    Path.GetFileName(filename), // Path.GetFileNameWithoutExtension(filename),
                     out firstElementName
                     );
             }
-
-            //// **** check to see if the file has a restrictions sheet ****
-
-            //if ((!string.IsNullOrEmpty(firstElementName)) && (ds.Tables.Contains("Restrictions")))
-            //{
-            //    // **** process restricted types ****
-
-            //    ProcessRestrictionsTable(
-            //        ds.Tables["Restrictions"], 
-            //        firstElementName, 
-            //        isPrimitive, 
-            //        Path.GetFileNameWithoutExtension(filename)
-            //        );
-            //}
 
             // **** success ****
 
@@ -589,11 +1061,13 @@ namespace generate_fhir_prototype_bindings
 
             // **** process base types from "Imports" sheet ****
 
-            ProcessPrimitiveTable(ds.Tables["Imports"], Path.GetFileNameWithoutExtension(primitivesFilename));
+            //ProcessPrimitiveTable(ds.Tables["Imports"], Path.GetFileNameWithoutExtension(primitivesFilename));
+            ProcessPrimitiveTable(ds.Tables["Imports"], Path.GetFileName(primitivesFilename));
 
             // **** process base types from "Patterns" sheet ****
 
-            ProcessPrimitiveTable(ds.Tables["Patterns"], Path.GetFileNameWithoutExtension(primitivesFilename));
+            //ProcessPrimitiveTable(ds.Tables["Patterns"], Path.GetFileNameWithoutExtension(primitivesFilename));
+            ProcessPrimitiveTable(ds.Tables["Patterns"], Path.GetFileName(primitivesFilename));
 
             // **** success ****
 

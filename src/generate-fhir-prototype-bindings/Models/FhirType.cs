@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text;
 using System.Linq;
-
+using generate_fhir_prototype_bindings.Managers;
 
 namespace generate_fhir_prototype_bindings.Models
 { 
@@ -168,18 +168,25 @@ namespace generate_fhir_prototype_bindings.Models
 
             if (string.IsNullOrEmpty(TypeName) || Name.Equals("Element"))
             {
-                sb.Append($"\t///<summary>\n\t///{comment}\n\t///</summary>\n\t///<source-file>{SourceFilename}.xml</source-file>\n\tpublic class {NameCapitalized}\n\t{{\n");
+                sb.Append($"\t///<summary>\n\t///{comment}\n\t///</summary>\n\t///<source-file>{SourceFilename}</source-file>\n\tpublic class {NameCapitalized}\n\t{{\n");
             }
             else if (Name.Equals(TypeName, StringComparison.Ordinal))
             {
-                sb.Append($"\t///<summary>\n\t///{comment}\n\t///</summary>\n\t///<source-file>{SourceFilename}.xml</source-file>\n\tpublic class {NameCapitalized} : Element\n\t{{\n");
+                sb.Append($"\t///<summary>\n\t///{comment}\n\t///</summary>\n\t///<source-file>{SourceFilename}</source-file>\n\tpublic class {NameCapitalized} : Element\n\t{{\n");
             }
             else
             {
-                sb.Append($"\t///<summary>\n\t///{comment}\n\t///</summary>\n\t///<source-file>{SourceFilename}.xml</source-file>\n\tpublic class {NameCapitalized} : {TypeName}\n\t{{\n");
+                sb.Append($"\t///<summary>\n\t///{comment}\n\t///</summary>\n\t///<source-file>{SourceFilename}</source-file>\n\tpublic class {NameCapitalized} : {TypeName}\n\t{{\n");
             }
 
-            // **** gram our name lower for fast comparison ****
+            // **** output resource type first (if necessary) ****
+
+            if (FhirTypeManager.DoesTypeRequireResourceTag(Name))
+            {
+                sb.Append($"\t\t///<summary>Resource Type Name (for serialization)</summary>\n\t\tpublic string ResourceType => \"{Name}\";\n");
+            }
+
+            // **** grab our name in lower case for fast comparison ****
 
             string nameLower = Name.ToLower();
 
@@ -213,7 +220,7 @@ namespace generate_fhir_prototype_bindings.Models
         {
 
             string comment = Comment.Replace("\n", "\n * ");
-            return $"/**\n * {comment}\n * From: {SourceFilename}.xml\n */\nexport type {Name} = {TypeName};\n";
+            return $"/**\n * {comment}\n * From: {SourceFilename}\n */\nexport type {Name} = {TypeName};\n";
         }
 
         private string GetTypeScriptStringComplex()
@@ -226,15 +233,22 @@ namespace generate_fhir_prototype_bindings.Models
 
             if (string.IsNullOrEmpty(TypeName) || Name.Equals("Element"))
             {
-                sb.Append($"/**\n * {comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} {{\n");
+                sb.Append($"/**\n * {comment}\n * From: {SourceFilename}\n */\nexport {_typeScriptImplementationType} {Name} {{\n");
             }
             else if (Name.Equals(TypeName, StringComparison.Ordinal))
             {
-                sb.Append($"/**\n * {comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} extends Element {{\n");
+                sb.Append($"/**\n * {comment}\n * From: {SourceFilename}\n */\nexport {_typeScriptImplementationType} {Name} extends Element {{\n");
             }
             else
             {
-                sb.Append($"/**\n * {comment}\n * From: {SourceFilename}.xml\n */\nexport {_typeScriptImplementationType} {Name} extends {TypeName} {{\n");
+                sb.Append($"/**\n * {comment}\n * From: {SourceFilename}\n */\nexport {_typeScriptImplementationType} {Name} extends {TypeName} {{\n");
+            }
+
+            // **** output resource type first (if necessary) ****
+
+            if (FhirTypeManager.DoesTypeRequireResourceTag(Name))
+            {
+                sb.Append($"\t/** Resource Type Name (for serialization) */\n\tresourceType: '{Name}';\n");
             }
 
             // **** output the properties of this type (alphebetically) ****

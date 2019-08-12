@@ -31,6 +31,8 @@ namespace generate_fhir_prototype_bindings.Managers
 
         private List<string> _fhirPrimitives;
 
+        private HashSet<string> _fhirTypesNeedingResourceType;
+
         private Regex _regexRemoveParenthesesContent;
 
         #endregion Instance Variables . . .
@@ -47,6 +49,7 @@ namespace generate_fhir_prototype_bindings.Managers
         {
             _fhirTypeDict = new Dictionary<string, FhirType>();
             _fhirPrimitives = new List<string>();
+            _fhirTypesNeedingResourceType = new HashSet<string>();
 
             _regexRemoveParenthesesContent = new Regex(_regexRemoveParenthesesContentDefinition);
         }
@@ -178,6 +181,20 @@ namespace generate_fhir_prototype_bindings.Managers
             _instance._OutputCSharp(writer, outputNamespace);
         }
 
+        public static int PerformResourceTypeChecks()
+        {
+            return _instance._PerformResourceTypeChecks();
+        }
+
+        public static bool DoesTypeRequireResourceTag(string name)
+        {
+            return _instance._fhirTypesNeedingResourceType.Contains(name);
+        }
+
+        public static bool RemoveType(string name)
+        {
+            return _instance._RemoveType(name);
+        }
         #endregion Class Interface . . .
 
         #region Instance Interface . . .
@@ -185,6 +202,100 @@ namespace generate_fhir_prototype_bindings.Managers
         #endregion Instance Interface . . .
 
         #region Internal Functions . . .
+
+        private bool _RemoveType(string name)
+        {
+            // **** check for this type existing ****
+
+            if (!_fhirTypeDict.ContainsKey(name))
+            {
+                return false;
+            }
+
+            // **** grab this type ****
+
+            FhirType fhirType = _fhirTypeDict[name];
+
+            // **** traverse properties, removing any cascading types ****
+
+            foreach (FhirProperty property in fhirType.Properties.Values)
+            {
+                // **** get this property's type info ****
+
+                if (!_fhirTypeDict.ContainsKey(property.TypeName))
+                {
+                    continue;
+                }
+
+                FhirType subType = _fhirTypeDict[property.TypeName];
+
+                // **** check to see if this type was defined in the same file ****
+
+                if (subType.SourceFilename.Equals(fhirType.SourceFilename, StringComparison.Ordinal))
+                {
+                    // **** remove this type ****
+
+                    _RemoveType(subType.Name);
+                }
+            }
+
+            // **** remove this type ****
+
+            _fhirTypeDict.Remove(name);
+
+            // **** success ****
+
+            return true;
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Performs the resource type checks action.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/12/2019.</remarks>
+        ///
+        /// <returns>An int.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        private int _PerformResourceTypeChecks()
+        {
+            // **** make sure Resource and DomainResource are excluded ****
+
+            if (_fhirTypesNeedingResourceType.Contains("Resource"))
+            {
+                _fhirTypesNeedingResourceType.Remove("Resource");
+            }
+
+            if (_fhirTypesNeedingResourceType.Contains("DomainResource"))
+            {
+                _fhirTypesNeedingResourceType.Remove("DomainResource");
+            }
+
+            // **** check the number of items in the hashmap ****
+
+            int startCount = _fhirTypesNeedingResourceType.Count;
+
+            // **** traverse our types checking for ones we need to flag ****
+
+            foreach (FhirType fhirType in _fhirTypeDict.Values)
+            {
+                if (fhirType == null)
+                {
+                    continue;
+                }
+
+                // **** if the type this resource descends from is listed, but this resource isn't ****
+
+                if ((!_fhirTypesNeedingResourceType.Contains(fhirType.Name)) &&
+                    (_fhirTypesNeedingResourceType.Contains(fhirType.TypeName)))
+                {
+                    _fhirTypesNeedingResourceType.Add(fhirType.Name);
+                }
+            }
+
+            // **** return the number of items added ****
+
+            return (_fhirTypesNeedingResourceType.Count - startCount);
+        }
 
         ///-------------------------------------------------------------------------------------------------
         /// <summary>Trim for matching names.</summary>
@@ -400,27 +511,10 @@ namespace generate_fhir_prototype_bindings.Managers
             FhirType currentTypeNode = null;
             string pathPascalCase = "";
 
-            // **** for debugging ****
-
-            //if (element.StartsWith("MeasureReport", StringComparison.Ordinal))
-            //{
-            //    currentTypeNode = null;
-            //}
-
-            //if (element.Contains("ActionDefinition.relatedAction", StringComparison.Ordinal))
-            //{
-            //    currentTypeNode = null;
-            //}
-
             // **** traverse name parts and resolve each one ****
 
             for (int nameIndex = 0; nameIndex < namePartCount; nameIndex++)
             {
-                //if ((currentTypeNode != null) && (currentTypeNode.Name == "Element"))
-                //{
-                //    Console.WriteLine("Here");
-                //}
-
                 // **** grab this name part ****
 
                 string name = names[nameIndex];
@@ -455,6 +549,8 @@ namespace generate_fhir_prototype_bindings.Managers
                         isFhirPrimitive,
                         ref currentTypeNode
                         );
+
+
 
                     // **** nothing else to do for top level ****
 
@@ -556,7 +652,7 @@ namespace generate_fhir_prototype_bindings.Managers
             {
                 // **** make sure base type exists ****
 
-                if (!_fhirTypeDict.ContainsKey(typeName))
+                if ((!_fhirTypeDict.ContainsKey(typeName)) && (!name.Equals(typeName, StringComparison.Ordinal)))
                 {
                     // TODO(ginoc): Need to trigger load of base types to inherit fields and type information
 
@@ -584,6 +680,15 @@ namespace generate_fhir_prototype_bindings.Managers
                 {
                     _fhirPrimitives.Add(name);
                 }
+
+                // **** check to see if this decends from anything in our 'resource' hashmap ****
+
+                if ((typeName.Equals("Resource", StringComparison.Ordinal)) || 
+                    (typeName.Equals("DomainResource", StringComparison.Ordinal)))
+                {
+                    _fhirTypesNeedingResourceType.Add(name);
+                }
+
             }
             else
             {
@@ -692,7 +797,6 @@ namespace generate_fhir_prototype_bindings.Managers
                 }
             }
         }
-
 
         ///-------------------------------------------------------------------------------------------------
         /// <summary>Output type script.</summary>
@@ -815,10 +919,8 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 // **** skip what we do not want ****
 
-                //if ((node.IsCircular) || (node.Properties.Count != 0))
                 if (node.Properties.Count != 0)
                 {
-                    //Console.WriteLine($"Skipping primitive: {node.Name}, Properties: {node.Properties.Count}, Circular: {node.IsCircular}");
                     continue;
                 }
 
@@ -848,7 +950,7 @@ namespace generate_fhir_prototype_bindings.Managers
                 languagePrimitiveDict.Add("datetime", FhirBasicNode.LanguagePrimitiveType.TypeDateTime);
             }
 
-            // **** output the our types ****
+            // **** output the rest of our types ****
 
             List<string> nodeNames = _fhirTypeDict.Keys.ToList<string>();
             nodeNames.Sort();
@@ -866,11 +968,8 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 // **** skip circular references and primitives ****
 
-                //if ((node.IsCircular) || (node.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None))
                 if (node.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None)
                 { 
-                    //Console.WriteLine($"Skipping node: {node.Name}, Properties: {node.Properties.Count}, Circular: {node.IsCircular}, Primitive: {node.LanguagePrimitive}");
-
                     continue;
                 }
 

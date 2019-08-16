@@ -272,6 +272,17 @@ namespace generate_fhir_prototype_bindings
                     continue;
                 }
 
+                // **** check for inherited property ****
+
+                if ((element.Base != null) && 
+                    (!string.IsNullOrEmpty(element.Base.Path)) &&
+                    (!element.Base.Path.Equals(element.Id, StringComparison.Ordinal)))
+                {
+                    // **** skip this ****
+
+                    continue;
+                }
+
                 // **** check for type information ****
 
                 if ((element.Type != null) && (element.Type.Length > 0) && (element.Type[0].Code != null))

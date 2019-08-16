@@ -213,6 +213,8 @@ namespace generate_fhir_prototype_bindings.Models
             }
 
             string comment = Comment.Replace("\n", "\n\t * ");
+            comment = comment.Replace("\r", "");
+
             string OptionalFlagString = IsOptional ? "?" : "";
 
             // **** ****
@@ -238,6 +240,8 @@ namespace generate_fhir_prototype_bindings.Models
 
             string name = useLowerCaseName ? Name : NameCapitalized;
             string comment = Comment.Replace("\n", "\n\t\t/// ");
+            comment = comment.Replace("\r", "");
+
             string typeName = TypeName.Trim().ToLower();
 
             // **** check for overriding the type name ****

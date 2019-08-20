@@ -119,6 +119,16 @@ namespace generate_fhir_prototype_bindings
             Console.WriteLine("...Done!");
         }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Process the JSON structure definitions described by options.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="options">Options for controlling the operation.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
         static bool ProcessJsonStructureDefinitions(Options options)
         {
             string dir = Path.Combine(options.FhirDirectory, "publish");
@@ -150,6 +160,15 @@ namespace generate_fhir_prototype_bindings
             return true;
         }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Process the structure definition JSON file described by filename.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="filename">Filename of the file.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
 
         static bool ProcessStructureDefinitionJsonFile(string filename)
         {
@@ -209,6 +228,15 @@ namespace generate_fhir_prototype_bindings
 
             return true;
         }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Process the structure type.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="sd">      The SD.</param>
+        /// <param name="filename">Filename of the file.</param>
+        ///-------------------------------------------------------------------------------------------------
 
         static void ProcessStructureType(fhir.StructureDefinition sd, string filename)
         {
@@ -301,6 +329,29 @@ namespace generate_fhir_prototype_bindings
                                 )
                             );
 
+                        // **** check for a code type ****
+
+                        if (defType.Code == "code")
+                        {
+                            string[] codeValues = element.Short.Split('|');
+
+                            // **** process this field ****
+
+                            FhirTypeManager.ProcessSpreadsheetDataElement(
+                                elementName,
+                                defType.Code,
+                                (element.Comment == null) ? element.Definition : element.Comment,
+                                $"{element.Min}..{element.Max}",
+                                false,
+                                filename,
+                                codeValues
+                                );
+
+                            // **** done with this field ****
+
+                            continue;
+                        }
+
                         // **** process this field ****
 
                         FhirTypeManager.ProcessSpreadsheetDataElement(
@@ -378,6 +429,16 @@ namespace generate_fhir_prototype_bindings
                 }
             }
         }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Fhir path to camel case.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="path">Full pathname of the file.</param>
+        ///
+        /// <returns>A string.</returns>
+        ///-------------------------------------------------------------------------------------------------
 
         private static string FhirPathToCamelCase(string path)
         {
@@ -648,7 +709,7 @@ namespace generate_fhir_prototype_bindings
             {
                 // **** output our data ****
 
-                FhirTypeManager.OutputCSharp(writer, options.OutputNamespace);
+                FhirTypeManager.OutputCSharp(writer, options.OutputNamespace, options.TypesToOutput);
             }
         }
 
@@ -685,7 +746,7 @@ namespace generate_fhir_prototype_bindings
             {
                 // **** output our data ****
 
-                FhirTypeManager.OutputTypeScript(writer, options.OutputNamespace);
+                FhirTypeManager.OutputTypeScript(writer, options.OutputNamespace, options.TypesToOutput);
             }
         }
 

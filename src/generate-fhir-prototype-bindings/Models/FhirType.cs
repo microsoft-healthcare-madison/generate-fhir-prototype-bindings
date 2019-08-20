@@ -161,8 +161,9 @@ namespace generate_fhir_prototype_bindings.Models
         public override string GetCSharpString(Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, bool useLowerCaseName = false)
         {
             StringBuilder sb = new StringBuilder();
+            StringBuilder enumSB = new StringBuilder();
 
-            string comment = Comment.Replace("\n", "\n/// ");
+            string comment = Comment.Replace("\n", "\n/// ").Replace("\r", "");
 
             // **** start with the interface open ****
 
@@ -200,6 +201,13 @@ namespace generate_fhir_prototype_bindings.Models
                 // **** append this field's string ****
 
                 sb.Append(Properties[name].GetCSharpString(languagePrimitiveDict, name.Equals(nameLower, StringComparison.Ordinal)));
+                
+                // **** check for having a code value list ****
+
+                if (Properties[name].CodeValues != null)
+                {
+                    enumSB.Append(Properties[name].GetCSharpCodeEnum(NameCapitalized));
+                }
             }
 
             // **** close our interface ****
@@ -208,7 +216,7 @@ namespace generate_fhir_prototype_bindings.Models
 
             // **** return our string ****
 
-            return sb.ToString();
+            return enumSB.ToString() + sb.ToString();
         }
 
 
@@ -219,15 +227,16 @@ namespace generate_fhir_prototype_bindings.Models
         private string GetTypeScriptStringBasic()
         {
 
-            string comment = Comment.Replace("\n", "\n * ");
+            string comment = Comment.Replace("\n", "\n * ").Replace("\r", "");
             return $"/**\n * {comment}\n * From: {SourceFilename}\n */\nexport type {Name} = {TypeName};\n";
         }
 
         private string GetTypeScriptStringComplex()
         {
             StringBuilder sb = new StringBuilder();
+            StringBuilder enumSB = new StringBuilder();
 
-            string comment = Comment.Replace("\n", "\n * ");
+            string comment = Comment.Replace("\n", "\n * ").Replace("\r", "");
 
             // **** start with the interface open ****
 
@@ -261,6 +270,13 @@ namespace generate_fhir_prototype_bindings.Models
                 // **** append this field's string ****
 
                 sb.Append(Properties[name].GetTypeScriptString());
+
+                // **** check for having a code value list ****
+
+                if (Properties[name].CodeValues != null)
+                {
+                    enumSB.Append(Properties[name].GetTypeScriptCodeEnum(NameCapitalized));
+                }
             }
 
             // **** close our interface ****
@@ -269,7 +285,7 @@ namespace generate_fhir_prototype_bindings.Models
 
             // **** return our string ****
 
-            return sb.ToString();
+            return enumSB.ToString() + sb.ToString();
         }
 
 

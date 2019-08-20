@@ -32,6 +32,14 @@ namespace generate_fhir_prototype_bindings.Models
 
         public bool IsOptional { get; set; }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets or sets the code values.</summary>
+        ///
+        /// <value>The code values.</value>
+        ///-------------------------------------------------------------------------------------------------
+
+        public string[] CodeValues { get; set; }
+
         #endregion Instance Variables . . .
 
         #region Constructors . . .
@@ -40,7 +48,8 @@ namespace generate_fhir_prototype_bindings.Models
                                                 string name,
                                                 string typeName,
                                                 string comment,
-                                                string cardinality
+                                                string cardinality,
+                                                string[] codeValues = null
                                                 )
         {
             // **** do not allow properties without names ****
@@ -106,6 +115,7 @@ namespace generate_fhir_prototype_bindings.Models
                 TypeName = typeName,
                 IsArray = (!string.IsNullOrEmpty(cardinality) && !cardinality.EndsWith('1')) ? true : false,
                 IsOptional = (cardinality.StartsWith("0")) ? true : false,
+                CodeValues = codeValues,
             };
 
             return node;
@@ -212,8 +222,7 @@ namespace generate_fhir_prototype_bindings.Models
                 return "";
             }
 
-            string comment = Comment.Replace("\n", "\n\t * ");
-            comment = comment.Replace("\r", "");
+            string comment = Comment.Replace("\n", "\n\t * ").Replace("\r", "");
 
             string OptionalFlagString = IsOptional ? "?" : "";
 
@@ -228,6 +237,96 @@ namespace generate_fhir_prototype_bindings.Models
             return $"\t/**\n\t * {comment}\n\t */\n\t{Name}{OptionalFlagString}: {TypeName};\n" +
                    $"\t/**\n\t * May contain extended information for property: '{Name}'\n\t */\n\t_{Name}?: Element;\n";
         }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets a TypeScript enum string for code values</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="parentName">Name of the parent.</param>
+        ///
+        /// <returns>The type script code enum.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        public string GetTypeScriptCodeEnum(string parentName)
+        {
+            if ((CodeValues == null) || (CodeValues.Length == 0))
+            {
+                return "";
+            }
+
+            StringBuilder sb = new StringBuilder();
+
+            // **** put a comment ****
+
+            sb.Append($"/**\n * Code Values for the {parentName}.{Name} field\n */\n");
+
+            // **** open our enum ***
+
+            sb.Append($"export enum {parentName}{NameCapitalized}Codes {{\n");
+
+            // **** start adding values ****
+
+            foreach (string code in CodeValues)
+            {
+                MangleCodeForOutput(code, out string name, out string value);
+
+                sb.Append($"\t{name} = \"{value}\",\n");
+            }
+
+            // **** close our enum ***
+
+            sb.Append("}\n");
+
+            // **** return our string ****
+
+            return sb.ToString();
+        }
+
+        private void MangleCodeForOutput(string input, out string name, out string value)
+        {
+            name = input.Trim();
+
+            if (name.Contains(" "))
+            {
+                name = name.Substring(0, name.IndexOf(" "));
+            }
+
+            value = name;
+
+            switch (name)
+            {
+                case "<":
+                    name = "LESS_THAN";
+                    break;
+                case "<=":
+                    name = "LESS_THAN_OR_EQUAL";
+                    break;
+                case ">=":
+                    name = "GREATER_THAN_OR_EQUAL";
+                    break;
+                case ">":
+                    name = "GREATER_THAN";
+                    break;
+                case "=":
+                    name = "EQUALS";
+                    break;
+                default:
+                    name = name.ToUpper().Replace("-", "_").Replace("/", "_").Replace(".", "");
+                    break;
+            }
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets C# string.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="languagePrimitiveDict">Dictionary of language primitives.</param>
+        /// <param name="useLowerCaseName">     (Optional) True to use lower case name.</param>
+        ///
+        /// <returns>The C# string.</returns>
+        ///-------------------------------------------------------------------------------------------------
 
         public override string GetCSharpString(Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, bool useLowerCaseName = false)
         {
@@ -258,6 +357,51 @@ namespace generate_fhir_prototype_bindings.Models
 
             return $"\t\t///<summary>{comment}</summary>\n\t\tpublic {typeName} {name} {{ get; set; }}\n" +
                 $"\t\t///<summary>May contain extended information for property: '{name}'</summary>\n\t\tpublic Element _{name} {{ get; set; }}\n";
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets C# code enum.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="parentName">Name of the parent.</param>
+        ///
+        /// <returns>The C# code enum.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        public string GetCSharpCodeEnum(string parentName)
+        {
+            if ((CodeValues == null) || (CodeValues.Length == 0))
+            {
+                return "";
+            }
+
+            StringBuilder sb = new StringBuilder();
+
+            // **** put a comment ****
+
+            sb.Append($"\t///<summary>Code Values for the {parentName}.{Name} field</summary>\n");
+
+            // **** open our enum ***
+
+            sb.Append($"\tpublic sealed class {parentName}{NameCapitalized}Codes {{\n");
+
+            // **** start adding values **** BundleEntrySearchModeCodes
+
+            foreach (string code in CodeValues)
+            {
+                MangleCodeForOutput(code, out string name, out string value);
+
+                sb.Append($"\t\tpublic const string {name} = \"{value}\";\n");
+            }
+
+            // **** close our enum ***
+
+            sb.Append("\t}\n");
+
+            // **** return our string ****
+
+            return sb.ToString();
         }
 
 

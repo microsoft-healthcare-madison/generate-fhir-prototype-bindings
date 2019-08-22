@@ -591,11 +591,11 @@ namespace generate_fhir_prototype_bindings.Managers
             return false;
         }
 
-        private static bool IsAllDigits(string value)
+        private static bool RequiresAlpha(string value)
         {
             foreach (char c in value)
             {
-                if ((c < '0') || (c > '9'))
+                if (((c < '0') || (c > '9')) && (c != '_'))
                 {
                     return false;
                 }
@@ -604,13 +604,6 @@ namespace generate_fhir_prototype_bindings.Managers
         }
         public static string SanitizeForProperty(string value)
         {
-            // **** need to check for all digits ****
-
-            if (IsAllDigits(value))
-            {
-                return $"VAL_{value}";
-            }
-
             // **** check for symbols we need to replace ****
 
             if (value.Contains("<="))
@@ -653,9 +646,20 @@ namespace generate_fhir_prototype_bindings.Managers
                 value = value.Replace("+", "PLUS");
             }
 
+            // **** make major substitutions ****
+
+            value = _regexSanitizeForProperty.Replace(value, "_");
+
+            // **** need to check for all digits or underscores ****
+
+            if (RequiresAlpha(value))
+            {
+                return $"VAL_{value}";
+            }
+
             // **** ****
 
-            return _regexSanitizeForProperty.Replace(value, "_");
+            return value;
         }
 
         private string _GetTypeScriptValueSetString(string alias, string valueSetUrl)

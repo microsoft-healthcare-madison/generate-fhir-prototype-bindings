@@ -708,7 +708,7 @@ namespace generate_fhir_prototype_bindings.Managers
                 // **** start our high-order statements ****
 
                 interfaceSB.Append($"interface {sanitizedName}_Interface {{\n");
-                exportSB.Append($"export let {sanitizedName}: {sanitizedName}_Interface = {{\n");
+                exportSB.Append($"export const {sanitizedName}: {sanitizedName}_Interface = {{\n");
 
                 // **** traverse the expanded values ****
 
@@ -733,7 +733,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
                     // **** build the internal variable ****
 
-                    codingSB.Append($"let {sanitizedName}_{sanitizedCodeName}: Coding = {{\n");
+                    codingSB.Append($"const {sanitizedName}_{sanitizedCodeName}: Coding = {{\n");
                     codingSB.Append($"\t\tcode: \"{concept.Code}\",\n");
                     if (!string.IsNullOrEmpty(concept.Display))
                     {
@@ -765,7 +765,7 @@ namespace generate_fhir_prototype_bindings.Managers
             // **** add our alias ****
 
             exportSB.Append($"/*\n * ValueSet alias for {valueSetUrl}\n */\n" +
-                $"export let {SanitizeForProperty(alias)}Values = {sanitizedName};\n");
+                $"export const {SanitizeForProperty(alias)}Values = {sanitizedName};\n");
 
             // **** flag written ****
 
@@ -1652,9 +1652,9 @@ namespace generate_fhir_prototype_bindings.Managers
                 writer.Write($"/** Restricted to types: {typesToOutput} **/\n");
             }
             
-            // **** start with our module ****
+            //// **** start with our module ****
 
-            writer.Write($"export module {outputNamespace} {{\n");
+            //writer.Write($"export module {outputNamespace} {{\n");
 
             // **** sort by name ****
 
@@ -1728,9 +1728,9 @@ namespace generate_fhir_prototype_bindings.Managers
                 writer.Write(node.GetTypeScriptString());
             }
 
-            // **** close our module ****
+            //// **** close our module ****
 
-            writer.Write($"}} // close module: {outputNamespace}\n");
+            //writer.Write($"}} // close module: {outputNamespace}\n");
         }
 
         ///-------------------------------------------------------------------------------------------------

@@ -646,6 +646,11 @@ namespace generate_fhir_prototype_bindings.Managers
                 value = value.Replace("+", "PLUS");
             }
 
+            if (char.IsDigit(value[0]))
+            {
+                value = "_" + value;
+            }
+
             // **** make major substitutions ****
 
             value = _regexSanitizeForProperty.Replace(value, "_");
@@ -707,7 +712,8 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 // **** start with a comment ****
 
-                exportSB.Append($"/*\n * {comment}\n */\n");
+                interfaceSB.Append($"/**\n * {comment}\n */\n");
+                exportSB.Append($"/**\n * {comment}\n */\n");
 
                 // **** start our high-order statements ****
 
@@ -748,11 +754,11 @@ namespace generate_fhir_prototype_bindings.Managers
 
                     // **** add this code to our interface ****
 
+                    interfaceSB.Append($"\t/**\n\t * {comment}\n\t */\n");
                     interfaceSB.Append($"\t{sanitizedCodeName}: Coding,\n");
 
                     // **** add this code to our export ****
 
-                    exportSB.Append($"\t/*\n\t * {comment}\n\t */\n");
                     exportSB.Append($"\t{sanitizedCodeName}: {sanitizedName}_{sanitizedCodeName},\n");
                 }
 

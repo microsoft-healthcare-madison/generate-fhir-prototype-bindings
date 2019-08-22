@@ -6,6 +6,8 @@ using generate_fhir_prototype_bindings.Models;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Collections;
+using fhir;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace generate_fhir_prototype_bindings.Managers
 {
@@ -16,12 +18,16 @@ namespace generate_fhir_prototype_bindings.Managers
         /// <summary>The RegEx remove parentheses content.</summary>
         private const string _regexRemoveParenthesesContentDefinition = "\\(.*?\\)";
 
+        private const string _regexSanitizeForPropertyDefinition = "[\r\n\\.\\|\\- \\/]";
+
         #endregion Class Constants . . .
 
         #region Class Variables . . .
 
         /// <summary>The instance for singleton pattern.</summary>
         private static FhirTypeManager _instance;
+
+        private static Regex _regexSanitizeForProperty;
 
         #endregion Class Variables . . .
 
@@ -34,6 +40,20 @@ namespace generate_fhir_prototype_bindings.Managers
         private HashSet<string> _fhirTypesNeedingResourceType;
 
         private Regex _regexRemoveParenthesesContent;
+
+        private List<fhir.CodeSystem> _fhirCodeSystems;
+        private Dictionary<string, fhir.CodeSystem> _idCodeSystemDict;
+        private Dictionary<string, fhir.CodeSystem> _urlCodeSystemDict;
+        private Dictionary<string, fhir.CodeSystemConcept> _embeddedCodeSystemDict;
+
+        private List<fhir.ValueSet> _fhirValueSets;
+        private Dictionary<string, fhir.ValueSet> _idValueSetDict;
+        private Dictionary<string, fhir.ValueSet> _urlValueSetDict;
+
+        private Dictionary<string, fhir.CodeSystemConcept[]> _urlValueSetConceptsDict;
+        private Dictionary<string, string> _urlValueSetSystemDict;
+
+        private HashSet<string> _writtenValueSets;
 
         #endregion Instance Variables . . .
 
@@ -51,7 +71,22 @@ namespace generate_fhir_prototype_bindings.Managers
             _fhirPrimitives = new List<string>();
             _fhirTypesNeedingResourceType = new HashSet<string>();
 
+            _fhirCodeSystems = new List<fhir.CodeSystem>();
+            _idCodeSystemDict = new Dictionary<string, fhir.CodeSystem>();
+            _urlCodeSystemDict = new Dictionary<string, fhir.CodeSystem>();
+            _embeddedCodeSystemDict = new Dictionary<string, CodeSystemConcept>();
+
+            _fhirValueSets = new List<fhir.ValueSet>();
+            _idValueSetDict = new Dictionary<string, fhir.ValueSet>();
+            _urlValueSetDict = new Dictionary<string, fhir.ValueSet>();
+
+            _urlValueSetConceptsDict = new Dictionary<string, fhir.CodeSystemConcept[]>();
+            _urlValueSetSystemDict = new Dictionary<string, string>();
+
+            _writtenValueSets = new HashSet<string>();
+
             _regexRemoveParenthesesContent = new Regex(_regexRemoveParenthesesContentDefinition);
+            _regexSanitizeForProperty = new Regex(_regexSanitizeForPropertyDefinition);
         }
 
         #endregion Constructors . . .
@@ -149,7 +184,8 @@ namespace generate_fhir_prototype_bindings.Managers
                                                 string cardinality,
                                                 bool isPrimitive,
                                                 string sourceFilename,
-                                                string[] codeValues = null
+                                                string[] codeValues = null,
+                                                string valueSet = null
                                                 )
         {
             _instance._ProcessSpreadsheetDataElement(
@@ -159,7 +195,8 @@ namespace generate_fhir_prototype_bindings.Managers
                 cardinality, 
                 isPrimitive, 
                 sourceFilename,
-                codeValues
+                codeValues,
+                valueSet
                 );
         }
 
@@ -173,30 +210,109 @@ namespace generate_fhir_prototype_bindings.Managers
         /// <param name="matchNames">     List of names of the matches.</param>
         ///-------------------------------------------------------------------------------------------------
 
-        public static void OutputTypeScript(StreamWriter writer, string outputNamespace, string typesToOutput)
+        public static void OutputTypeScript(
+                                            StreamWriter writer, 
+                                            string outputNamespace, 
+                                            string typesToOutput,
+                                            bool excludeCodes
+                                            )
         {
-            _instance._OutputTypeScript(writer, outputNamespace, typesToOutput);
+            _instance._OutputTypeScript(writer, outputNamespace, typesToOutput, excludeCodes);
         }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Output C#.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="writer">         The writer.</param>
+        /// <param name="outputNamespace">The output namespace.</param>
+        /// <param name="typesToOutput">  The types to output.</param>
+        ///-------------------------------------------------------------------------------------------------
 
         public static void OutputCSharp(StreamWriter writer, string outputNamespace, string typesToOutput)
         {
             _instance._OutputCSharp(writer, outputNamespace, typesToOutput);
         }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Performs the resource type checks action.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <returns>An int.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
         public static int PerformResourceTypeChecks()
         {
             return _instance._PerformResourceTypeChecks();
         }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Query if 'name' does type require resource tag.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="name">The name.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
 
         public static bool DoesTypeRequireResourceTag(string name)
         {
             return _instance._fhirTypesNeedingResourceType.Contains(name);
         }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Removes the type described by name.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="name">The name.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
         public static bool RemoveType(string name)
         {
             return _instance._RemoveType(name);
         }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Load the code system described by codeSystem.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="codeSystem">The code system.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        public static bool LoadCodeSystem(fhir.CodeSystem codeSystem)
+        {
+            return _instance._LoadCodeSystem(codeSystem);
+        }
+
+        public static bool LoadValueSet(fhir.ValueSet valueSet, string filename)
+        {
+            return _instance._LoadValueSet(valueSet, filename);
+        }
+
+        public static bool ExpandValueSets()
+        {
+            return _instance._ExpandValueSets();
+        }
+
+        public static string GetCSharpValueSetString(string alias, string key)
+        {
+            return _instance._GetCSharpValueSetString(alias, key);
+        }
+
+        public static string GetTypeScriptValueSetString(string alias, string key)
+        {
+            return _instance._GetTypeScriptValueSetString(alias, key);
+        }
+
         #endregion Class Interface . . .
 
         #region Instance Interface . . .
@@ -204,6 +320,709 @@ namespace generate_fhir_prototype_bindings.Managers
         #endregion Instance Interface . . .
 
         #region Internal Functions . . .
+
+        private bool _ExpandValueSets()
+        {
+            // **** traverse the value sets we have been exposed to ****
+
+            foreach (fhir.ValueSet valueSet in _fhirValueSets)
+            {
+                // **** attempt to expand this value set ****
+
+                ExpandValueSet(valueSet);
+            }
+
+            // **** success ****
+
+            return true;
+        }
+
+        private bool ExpandValueSet(fhir.ValueSet valueSet)
+        {
+            // **** sanity checks ****
+
+            if (valueSet == null)
+            {
+                return true;
+            }
+
+            if (_urlValueSetConceptsDict.ContainsKey(valueSet.Url))
+            {
+                return true;
+            }
+
+            // **** check for composition rules we know how to handle ****
+
+            if ((valueSet.Compose == null) || 
+                (valueSet.Compose.Include == null) ||
+                (valueSet.Compose.Include.Length == 0))
+            {
+                return false;
+            }
+
+            List<fhir.CodeSystemConcept> concepts = new List<CodeSystemConcept>();
+
+            // **** process includes ****
+
+            foreach (fhir.ValueSetComposeInclude include in valueSet.Compose.Include)
+            {
+                // **** check for no or unknown system ****
+
+                if ((string.IsNullOrEmpty(include.System)) ||
+                    (!_urlCodeSystemDict.ContainsKey(include.System)) ||
+                    (_urlCodeSystemDict[include.System].Concept == null))
+                {
+                    // **** cannot process this (partial is worse than missing) ****
+
+                    return false;
+                }
+
+                // **** check to see if there is no filter ****
+
+                if ((include.Filter == null) ||
+                    (include.Filter.Length == 0))
+                {
+                    // **** add the entire code system ****
+
+                    concepts.AddRange(_urlCodeSystemDict[include.System].Concept);
+
+                    // **** set our code system for this value set ****
+
+                    _urlValueSetSystemDict[valueSet.Url] = include.System;
+
+                    // **** done with this include ****
+
+                    continue;
+                }
+
+                // **** check for filters we know about ****
+
+                if (_embeddedCodeSystemDict.ContainsKey($"{include.System}#{include.Filter[0].Value}"))
+                {
+                    // *** add this set ****
+
+                    concepts.AddRange(_embeddedCodeSystemDict[$"{include.System}#{include.Filter[0].Value}"].Concept);
+
+                    // **** set our code system for this value set ****
+
+                    _urlValueSetSystemDict[valueSet.Url] = include.System;
+
+                    // **** done with this include ****
+
+                    continue;
+                }
+
+                // **** search for this value manually ****
+
+                if (FindCodeSystemValue(
+                        _urlCodeSystemDict[include.System].Concept,
+                        include.Filter[0].Value,
+                        out CodeSystemConcept foundConcept))
+                {
+                    // **** add this concept ****
+
+                    concepts.Add(foundConcept);
+
+                    // **** set our code system for this value set ****
+
+                    _urlValueSetSystemDict[valueSet.Url] = include.System;
+                }
+
+                // **** don't know how to handle ****
+
+                return false;
+            }
+
+
+            HashSet<string> addedConceptCodes = new HashSet<string>();
+
+            // **** flatten our concepts ****
+
+            concepts = FlattenCodeSystemConcepts(concepts, ref addedConceptCodes);
+
+            // **** process excludes ****
+
+            if (valueSet.Compose.Exclude != null)
+            {
+                foreach (fhir.ValueSetComposeInclude exclude in valueSet.Compose.Exclude)
+                {
+                    if ((exclude.Concept == null) || (exclude.Concept.Length == 0))
+                    {
+                        continue;
+                    }
+
+                    // **** process each concept ****
+
+                    foreach (fhir.ValueSetComposeIncludeConcept excludeConcept in exclude.Concept)
+                    {
+                        // **** look for this item ****
+
+                        concepts.RemoveAll(cpt => cpt.Code == excludeConcept.Code);
+                    }
+                }
+            }
+
+            // **** add this set ****
+
+            _urlValueSetConceptsDict.Add(valueSet.Url, concepts.ToArray());
+
+            // **** success ****
+
+            return true;
+        }
+
+        private List<fhir.CodeSystemConcept> FlattenCodeSystemConcepts(
+                                                            IEnumerable<fhir.CodeSystemConcept> conceptTree,
+                                                            ref HashSet<string> addedConceptCodes
+                                                            )
+        {
+            List<fhir.CodeSystemConcept> flat = new List<fhir.CodeSystemConcept>();
+
+            // **** traverse our tree ****
+
+            foreach (fhir.CodeSystemConcept concept in conceptTree)
+            {
+                // **** ignore duplicates ****
+
+                if (addedConceptCodes.Contains(concept.Code))
+                {
+                    continue;
+                }
+
+                // **** add this node ****
+
+                if (ConceptWithoutSubs(concept, out fhir.CodeSystemConcept cleanConcept))
+                {
+                    flat.Add(cleanConcept);
+
+                    // **** add to our hash ****
+
+                    addedConceptCodes.Add(cleanConcept.Code);
+                }
+
+                // **** add any subnodes ****
+
+                if ((concept.Concept != null) && (concept.Concept.Length > 0))
+                {
+                    flat.AddRange(FlattenCodeSystemConcepts(concept.Concept, ref addedConceptCodes));
+                }
+            }
+
+            // **** return our list ****
+
+            return flat;
+        }
+
+        private bool ConceptWithoutSubs(fhir.CodeSystemConcept concept, out fhir.CodeSystemConcept cleanConcept)
+        {
+            if ((concept.Property != null) &&
+                (concept.Property.Length > 0) &&
+                (concept.Property.Any(prop => (prop.Code == "notSelectable") && (prop.ValueBoolean == true))))
+            {
+                cleanConcept = null;
+                return false;
+            }
+               
+            // **** create our concept ****
+
+            cleanConcept = new CodeSystemConcept();
+
+            // **** set values we have ****
+
+            if (!string.IsNullOrEmpty(concept.Code))
+            {
+                cleanConcept.Code = concept.Code;
+            }
+
+            if (!string.IsNullOrEmpty(concept.Display))
+            {
+                cleanConcept.Display = concept.Display;
+            }
+
+            if (!string.IsNullOrEmpty(concept.Definition))
+            {
+                cleanConcept.Definition = concept.Definition;
+            }
+
+            // **** return our object ****
+
+            return true;
+        }
+
+        private bool FindCodeSystemValue(
+                                        fhir.CodeSystemConcept[] concepts,
+                                        string requestedCode,
+                                        out fhir.CodeSystemConcept concept
+                                        )
+        {
+            // **** assume not found ****
+
+            concept = null;
+
+            // **** start traversing ****
+
+            for (int searchIndex = 0; searchIndex < concepts.Length; searchIndex++)
+            {
+                // **** check for match ****
+
+                if (concepts[searchIndex].Code == requestedCode)
+                {
+                    concept = concepts[searchIndex];
+                    return true;
+                }
+
+                // **** check for needing to recurse ****
+
+                if ((concepts[searchIndex].Concept != null) &&
+                    (concepts[searchIndex].Concept.Length > 0))
+                {
+                    if (FindCodeSystemValue(
+                            concepts[searchIndex].Concept, 
+                            requestedCode, 
+                            out concept))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // **** did not find ****
+
+            return false;
+        }
+
+        private static bool IsAllDigits(string value)
+        {
+            foreach (char c in value)
+            {
+                if ((c < '0') || (c > '9'))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        public static string SanitizeForProperty(string value)
+        {
+            // **** need to check for all digits ****
+
+            if (IsAllDigits(value))
+            {
+                return $"VAL_{value}";
+            }
+
+            // **** check for symbols we need to replace ****
+
+            if (value.Contains("<="))
+            {
+                value = value.Replace("<=", "LESS_THAN_OR_EQUAL");
+            }
+
+            if (value.Contains("<"))
+            {
+                value = value.Replace("<", "LESS_THAN");
+            }
+
+            if (value.Contains(">="))
+            {
+                value = value.Replace(">=", "GREATER_THAN_OR_EQUAL");
+            }
+
+            if (value.Contains(">"))
+            {
+                value = value.Replace(">", "GREATER_THAN");
+            }
+
+            if (value.Contains("!="))
+            {
+                value = value.Replace("!=", "NOT_EQUAL");
+            }
+
+            if (value.Contains("=="))
+            {
+                value = value.Replace("==", "EQUALS");
+            }
+
+            if (value.Contains("="))
+            {
+                value = value.Replace("=", "EQUALS");
+            }
+
+            if (value.Contains("+"))
+            {
+                value = value.Replace("+", "PLUS");
+            }
+
+            // **** ****
+
+            return _regexSanitizeForProperty.Replace(value, "_");
+        }
+
+        private string _GetTypeScriptValueSetString(string alias, string valueSetUrl)
+        {
+            if ((string.IsNullOrEmpty(valueSetUrl)) ||
+                (!_urlValueSetDict.ContainsKey(valueSetUrl)) ||
+                (_writtenValueSets.Contains(alias)))
+            {
+                return "";
+            }
+
+            // **** make sure we have successfully expanded this value set ****
+
+            if (!_urlValueSetConceptsDict.ContainsKey(valueSetUrl))
+            {
+                return "";
+            }
+
+            // **** grab our value set ****
+
+            fhir.ValueSet valueSet = _urlValueSetDict[valueSetUrl];
+
+            string sanitizedName = SanitizeForProperty(valueSet.Name);
+
+            // **** ****
+
+            StringBuilder codingSB = new StringBuilder();
+            StringBuilder interfaceSB = new StringBuilder();
+            StringBuilder exportSB = new StringBuilder();
+
+            // **** check if we need to output the base class ****
+
+            if (!_writtenValueSets.Contains(valueSetUrl))
+            {
+                string comment;
+                
+                if (!string.IsNullOrEmpty(valueSet.Description))
+                {
+                    comment = valueSet.Description.Replace("\n", "\n * ").Replace("\r", "");
+                }
+                else
+                {
+                    comment = $"Expanded ValueSet from {valueSetUrl}";
+                }
+
+                // **** start with a comment ****
+
+                exportSB.Append($"/*\n * {comment}\n */\n");
+
+                // **** start our high-order statements ****
+
+                interfaceSB.Append($"interface {sanitizedName}_Interface {{\n");
+                exportSB.Append($"export let {sanitizedName}: {sanitizedName}_Interface = {{\n");
+
+                // **** traverse the expanded values ****
+
+                foreach (fhir.CodeSystemConcept concept in _urlValueSetConceptsDict[valueSetUrl])
+                {
+                    string sanitizedCodeName = SanitizeForProperty(concept.Code);
+
+                    // **** figure out the proper comment ****
+
+                    if (!string.IsNullOrEmpty(concept.Definition))
+                    {
+                        comment = concept.Definition.Replace("\n", "\n\t * ").Replace("\r", "");
+                    }
+                    else if (!string.IsNullOrEmpty(concept.Display))
+                    {
+                        comment = concept.Display.Replace("\n", "\n\t * ").Replace("\r", "");
+                    }
+                    else
+                    {
+                        comment = $"Value for '{concept.Code}'";
+                    }
+
+                    // **** build the internal variable ****
+
+                    codingSB.Append($"let {sanitizedName}_{sanitizedCodeName}: Coding = {{\n");
+                    codingSB.Append($"\t\tcode: \"{concept.Code}\",\n");
+                    if (!string.IsNullOrEmpty(concept.Display))
+                    {
+                        codingSB.Append($"\t\tdisplay: \"{concept.Display}\",\n");
+                    }
+                    codingSB.Append($"\t\tsystem: \"{_urlValueSetSystemDict[valueSetUrl]}\"\n");
+                    codingSB.Append($"\t}};\n");
+
+                    // **** add this code to our interface ****
+
+                    interfaceSB.Append($"\t{sanitizedCodeName}: Coding,\n");
+
+                    // **** add this code to our export ****
+
+                    exportSB.Append($"\t/*\n\t * {comment}\n\t */\n");
+                    exportSB.Append($"\t{sanitizedCodeName}: {sanitizedName}_{sanitizedCodeName},\n");
+                }
+
+                // **** close our interface and export **** 
+
+                interfaceSB.Append("};\n");
+                exportSB.Append("}\n");
+
+                // **** flag written ****
+
+                _writtenValueSets.Add(valueSetUrl);
+            }
+
+            // **** add our alias ****
+
+            exportSB.Append($"/*\n * ValueSet alias for {valueSetUrl}\n */\n" +
+                $"export let {SanitizeForProperty(alias)}Values = {sanitizedName};\n");
+
+            // **** flag written ****
+
+            _writtenValueSets.Add(alias);
+
+            // **** return our string ****
+
+            return codingSB.ToString() + interfaceSB.ToString() + exportSB.ToString();
+        }
+
+        private string _GetCSharpValueSetString(string alias, string valueSetUrl)
+        {
+            if ((string.IsNullOrEmpty(valueSetUrl)) ||
+                (!_urlValueSetDict.ContainsKey(valueSetUrl)) ||
+                (_writtenValueSets.Contains(alias)))
+            {
+                return "";
+            }
+
+            // **** make sure we have successfully expanded this value set ****
+
+            if (!_urlValueSetConceptsDict.ContainsKey(valueSetUrl))
+            {
+                return "";
+            }
+
+            // **** grab our value set ****
+
+            fhir.ValueSet valueSet = _urlValueSetDict[valueSetUrl];
+
+            // **** ****
+
+            StringBuilder sb = new StringBuilder();
+
+            // **** check if we need to output the base class ****
+
+            if (!_writtenValueSets.Contains(valueSetUrl))
+            {
+                string comment;
+
+                if (!string.IsNullOrEmpty(valueSet.Description))
+                {
+                    comment = valueSet.Description.Replace("\n", "\n\t/// ").Replace("\r", "");
+                }
+                else
+                {
+                    comment = $"Expanded ValueSet from {valueSetUrl}";
+                }
+
+                // **** start with a comment ****
+
+                sb.Append($"\t///<summary>{comment}</summary>\n");
+
+                // **** start our value set ****
+
+                sb.Append($"\tpublic abstract class {SanitizeForProperty(valueSet.Name)}\n\t{{\n");
+
+                // **** traverse the expanded values ****
+
+                foreach (fhir.CodeSystemConcept concept in _urlValueSetConceptsDict[valueSetUrl])
+                {
+                    if (!string.IsNullOrEmpty(concept.Definition))
+                    {
+                        comment = concept.Definition.Replace("\n", "\n\t\t/// ").Replace("\r", "");
+                    }
+                    else if (!string.IsNullOrEmpty(concept.Display))
+                    {
+                        comment = concept.Display.Replace("\n", "\n\t\t/// ").Replace("\r", "");
+                    }
+                    else
+                    {
+                        comment = $"Value for '{concept.Code}'";
+                    }
+
+                    // **** start with a comment ****
+
+                    sb.Append($"\t\t///<summary>{comment}</summary>\n");
+
+                    // **** start our coding ****
+
+                    sb.Append($"\t\tpublic readonly Coding {SanitizeForProperty(concept.Code)} = new Coding\n\t\t{{\n");
+                    sb.Append($"\t\t\tCode = \"{concept.Code}\",\n");
+                    if (!string.IsNullOrEmpty(concept.Display))
+                    {
+                        sb.Append($"\t\t\tDisplay = \"{concept.Display}\",\n");
+                    }
+                    sb.Append($"\t\t\tSystem = \"{_urlValueSetSystemDict[valueSetUrl]}\"\n");
+                    sb.Append($"\t\t}};\n");
+                }
+
+                // **** close our class **** 
+
+                sb.Append($"\t}};\n");
+
+                // **** flag written ****
+
+                _writtenValueSets.Add(valueSetUrl);
+            }
+
+            // **** add our alias ****
+
+            sb.Append($"\t\t///<summary>ValueSet alias for {valueSetUrl}</summary>\n" +
+                $"\tpublic abstract class {SanitizeForProperty(alias)}Values : {SanitizeForProperty(valueSet.Name)} {{ }}\n");
+
+            // **** flag written ****
+
+            _writtenValueSets.Add(alias);
+
+            // **** return our string ****
+
+            return sb.ToString();
+        }
+
+
+        private bool _LoadValueSet(fhir.ValueSet valueSet, string filename)
+        {
+            // **** sanity check ****
+
+            if ((valueSet == null) || (string.IsNullOrEmpty(valueSet.Url)))
+            {
+                return false;
+            }
+
+            // **** check to see if this is a known code system ****
+
+            if (_urlValueSetDict.ContainsKey(valueSet.Url))
+            {
+                // **** assume already added ****
+
+                return true;
+            }
+
+            // **** add this valueSet to our list ****
+
+            _fhirValueSets.Add(valueSet);
+
+            // **** add to the appropriate tracking sets ****
+
+            _idValueSetDict.Add(valueSet.Id, valueSet);
+            _urlValueSetDict.Add(valueSet.Url, valueSet);
+
+            // **** ok ****
+
+            return true;
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Process the code system described by codeSystem.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="codeSystem">The code system.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        private bool _LoadCodeSystem(fhir.CodeSystem codeSystem)
+        {
+            // **** sanity check ****
+
+            if (codeSystem == null)
+            {
+                return false;
+            }
+
+            // **** check to see if this is a known code system ****
+
+            if (_urlCodeSystemDict.ContainsKey(codeSystem.Url))
+            {
+                // **** assume already added ****
+
+                return true;
+            }
+
+            // **** add this codesystem to our list ****
+
+            _fhirCodeSystems.Add(codeSystem);
+
+            // **** add to the appropriate tracking sets ****
+
+            _idCodeSystemDict.Add(codeSystem.Id, codeSystem);
+            _urlCodeSystemDict.Add(codeSystem.Url, codeSystem);
+
+            // **** check this code system for a hierarchy ****
+
+            if ((codeSystem.Concept != null) && (codeSystem.Concept.Length > 0))
+            {
+                CheckForEmbeddedCodeSystems(codeSystem, codeSystem.Concept);
+            }
+
+            // **** ok ****
+
+            return true;
+        }
+
+        private bool CheckForEmbeddedCodeSystems(
+                                                fhir.CodeSystem codeSystem, 
+                                                fhir.CodeSystemConcept[] concepts
+                                                )
+        {
+            // **** traverse the concepts ****
+
+            foreach (fhir.CodeSystemConcept concept in concepts)
+            {
+                if (concept == null)
+                {
+                    continue;
+                }
+
+                // **** test for recursion ****
+
+                if ((concept.Concept != null) && (concept.Concept.Length > 0))
+                {
+                    CheckForEmbeddedCodeSystems(codeSystem, concept.Concept);
+                }
+
+                // **** test exclusions on this concept ****
+
+                if ((concept.Property == null) || (concept.Property.Length == 0))
+                {
+                    continue;
+                }
+
+                // **** test for a not-selectable item ****
+
+                foreach (fhir.CodeSystemConceptProperty prop in concept.Property)
+                {
+                    if ((prop.Code == "notSelectable") && (prop.ValueBoolean == true))
+                    {
+                        // **** add this to our dictionary ****
+
+                        _embeddedCodeSystemDict.Add(
+                            $"{codeSystem.Url}#{concept.Code}", 
+                            concept
+                            );
+
+                        // **** done testing ****
+
+                        break;
+                    }
+                }
+            }
+
+            // **** success ****
+
+            return true;
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Removes the type described by name.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="name">The name.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
 
         private bool _RemoveType(string name)
         {
@@ -493,7 +1312,8 @@ namespace generate_fhir_prototype_bindings.Managers
                                         string cardinality,
                                         bool isFhirPrimitive,
                                         string sourceFilename,
-                                        string[] codeValues = null
+                                        string[] codeValues = null,
+                                        string valueSet = null
                                         )
         {
             // **** skip empty or excluded fields ****
@@ -582,7 +1402,8 @@ namespace generate_fhir_prototype_bindings.Managers
                         baseType,
                         comment,
                         cardinality,
-                        codeValues
+                        codeValues,
+                        valueSet
                         );
 
                     // **** add this property to our type ****
@@ -690,7 +1511,6 @@ namespace generate_fhir_prototype_bindings.Managers
                 {
                     _fhirTypesNeedingResourceType.Add(name);
                 }
-
             }
             else
             {
@@ -807,11 +1627,21 @@ namespace generate_fhir_prototype_bindings.Managers
         ///
         /// <param name="writer">         The writer.</param>
         /// <param name="outputNamespace">The output namespace.</param>
-        /// <param name="matchNames">     List of names of the matches.</param>
+        /// <param name="typesToOutput">  The types to output.</param>
+        /// <param name="excludeCodes">   True to exclude, false to include the codes.</param>
         ///-------------------------------------------------------------------------------------------------
 
-        private void _OutputTypeScript(StreamWriter writer, string outputNamespace, string typesToOutput)
+        private void _OutputTypeScript(
+                                        StreamWriter writer, 
+                                        string outputNamespace, 
+                                        string typesToOutput,
+                                        bool excludeCodes
+                                        )
         {
+            // **** have not written any code systems ****
+
+            _writtenValueSets.Clear();
+
             // **** write our header ****
 
             writer.Write($"/** GENERATED FILE **/\n");
@@ -903,9 +1733,22 @@ namespace generate_fhir_prototype_bindings.Managers
             writer.Write($"}} // close module: {outputNamespace}\n");
         }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Output C#.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="writer">         The writer.</param>
+        /// <param name="outputNamespace">The output namespace.</param>
+        /// <param name="typesToOutput">  The types to output.</param>
+        ///-------------------------------------------------------------------------------------------------
 
         private void _OutputCSharp(StreamWriter writer, string outputNamespace, string typesToOutput)
         {
+            // **** have not written any code systems ****
+
+            _writtenValueSets.Clear();
+
             // **** write our header ****
 
             writer.Write($"/** GENERATED FILE **/\n");

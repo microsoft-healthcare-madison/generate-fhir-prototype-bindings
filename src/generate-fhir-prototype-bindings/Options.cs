@@ -22,6 +22,11 @@ namespace generate_fhir_prototype_bindings
         [Option("types-for-xml-sheets", Default ="", HelpText = "'|' Separated list of resources to read from XML files. E.g., Topic|Subscription")]
         public string TypesForXmlSpreadsheets { get; set; }
 
+        [Option("exclude-code-systems", Default =false, HelpText = "Set to Exclude processing of Code Systems")]
+        public bool ExcludeCodeSystems { get; set; }
+
+        [Option("exclude-value-sets", Default =false, HelpText ="Set to Exclude processing of Value Sets")]
+        public bool ExcludeValueSets { get; set; }
         #endregion Input Options
 
         #region Ouput Options . . .
@@ -34,6 +39,9 @@ namespace generate_fhir_prototype_bindings
 
         [Option("types-to-output", Default = "", HelpText = "'|' Separated list of resources/profiles/types to export (will include all necessary types below). E.g., Topic|Subscription")]
         public string TypesToOutput { get; set; }
+
+        [Option("exclude-codes", Default =false, HelpText ="Set to Exclude output of Code values as enums/lists")]
+        public bool ExcludeCodes { get; set; }
 
         #endregion Output Options . . .
 

@@ -71,12 +71,9 @@ namespace generate_fhir_prototype_bindings
                 File.Delete(options.OutputFile);
             }
 
-            // **** process Published Structure Definitions ****
+            // **** process all of the json files (only once) ****
 
-            if (!options.UseOnlyXmlSpreadsheets)
-            {
-                ProcessJsonStructureDefinitions(options);
-            }
+            ProcessPublishedJson(options);
 
             // **** process XML spreadsheets (if necessary) ****
 
@@ -92,6 +89,10 @@ namespace generate_fhir_prototype_bindings
             {
                 ProcessXmlSpreadsheetsFor(options);
             }
+
+            // **** expand value sets ****
+
+            FhirTypeManager.ExpandValueSets();
 
             // **** trim our output to match requested types ****
 
@@ -119,17 +120,7 @@ namespace generate_fhir_prototype_bindings
             Console.WriteLine("...Done!");
         }
 
-        ///-------------------------------------------------------------------------------------------------
-        /// <summary>Process the JSON structure definitions described by options.</summary>
-        ///
-        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
-        ///
-        /// <param name="options">Options for controlling the operation.</param>
-        ///
-        /// <returns>True if it succeeds, false if it fails.</returns>
-        ///-------------------------------------------------------------------------------------------------
-
-        static bool ProcessJsonStructureDefinitions(Options options)
+        static bool ProcessPublishedJson(Options options)
         {
             string dir = Path.Combine(options.FhirDirectory, "publish");
 
@@ -137,25 +128,90 @@ namespace generate_fhir_prototype_bindings
 
             if (!Directory.Exists(dir))
             {
-                Console.WriteLine("Publish directory not found! Skipping Structure Definitions");
+                Console.WriteLine("Publish directory not found!");
                 return false;
             }
 
-            Console.WriteLine("Processing Structure Definitions");
+            // **** get all canonical files in the publish directory ****
 
+            string[] files = Directory.GetFiles(dir, "*.canonical.json", SearchOption.AllDirectories);
 
-            // **** traverse the canonical JSON files in the Publish Directory ****
-
-            string[] files = Directory.GetFiles(dir, "*.canonical.json", SearchOption.TopDirectoryOnly);
+            // **** traverse the files ****
 
             foreach (string filename in files)
             {
-                // **** process this file ****
+                // **** read the contents ****
 
-                ProcessStructureDefinitionJsonFile(filename);
+                string contents = File.ReadAllText(filename);
+
+                // **** act depending on contents ****
+
+                if (contents.Contains("\"resourceType\":\"StructureDefinition\""))
+                {
+                    // **** check for ignoring these ****
+
+                    if (options.UseOnlyXmlSpreadsheets)
+                    {
+                        continue;
+                    }
+
+                    // **** parse into an object we can work with ****
+
+                    fhir.StructureDefinition sd = JsonConvert.DeserializeObject<fhir.StructureDefinition>(contents);
+
+                    // **** process this structure definition ****
+
+                    ProcessStructureDefinition(sd, filename);
+
+                    // **** done with this file ****
+
+                    continue;
+                }
+
+                if (contents.Contains("\"resourceType\":\"CodeSystem\""))
+                {
+                    if (options.ExcludeCodeSystems)
+                    {
+                        continue;
+                    }
+
+                    // **** parse into an object we can work with ****
+
+                    fhir.CodeSystem cs = JsonConvert.DeserializeObject<fhir.CodeSystem>(contents);
+
+                    // **** process this code system ****
+
+                    FhirTypeManager.LoadCodeSystem(cs);
+
+                    // **** done with this file ****
+
+                    continue;
+                }
+
+                if (contents.Contains("\"resourceType\":\"ValueSet\""))
+                {
+                    if (options.ExcludeValueSets)
+                    {
+                        continue;
+                    }
+
+                    // **** parse into an object we can work with ****
+
+                    fhir.ValueSet vs = JsonConvert.DeserializeObject<fhir.ValueSet>(contents);
+
+                    // **** process this value set ****
+
+                    FhirTypeManager.LoadValueSet(vs, filename);
+
+                    // **** done with this file ****
+
+                    continue;
+                }
+
             }
 
-            // **** ok ****
+
+            // **** success *****
 
             return true;
         }
@@ -165,27 +221,21 @@ namespace generate_fhir_prototype_bindings
         ///
         /// <remarks>Gino Canessa, 8/20/2019.</remarks>
         ///
-        /// <param name="filename">Filename of the file.</param>
+        /// <param name="sd">The SD.</param>
         ///
         /// <returns>True if it succeeds, false if it fails.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        static bool ProcessStructureDefinitionJsonFile(string filename)
+        static bool ProcessStructureDefinition(fhir.StructureDefinition sd, string filename)
         {
-            // **** for now, skip extensions ****
+            // **** skip random extensions for now ****
 
-            if (Path.GetFileName(filename).StartsWith("extension-"))
+            if ((sd.Type == "Extension") && 
+                (sd.Id != "Extension"))
             {
+                
                 return true;
             }
-
-            // **** read the contents of the file ****
-
-            string contents = File.ReadAllText(filename);
-
-            // **** parse into an object we can work with ****
-
-            fhir.StructureDefinition sd = JsonConvert.DeserializeObject<fhir.StructureDefinition>(contents);
 
             // **** check for elements ****
 
@@ -315,6 +365,14 @@ namespace generate_fhir_prototype_bindings
 
                 if ((element.Type != null) && (element.Type.Length > 0) && (element.Type[0].Code != null))
                 {
+                    // **** grab the valueSet if present ****
+
+                    string valueSet = "";
+                    if ((element.Binding != null) && (!string.IsNullOrEmpty(element.Binding.ValueSet)))
+                    {
+                        valueSet = element.Binding.ValueSet;
+                    }
+
                     // **** traverse the types for this element ****
 
                     foreach (ElementDefinitionType defType in element.Type)
@@ -360,7 +418,8 @@ namespace generate_fhir_prototype_bindings
                             element.Definition,
                             $"{element.Min}..{element.Max}",
                             false,
-                            filename
+                            filename,
+                            valueSet: valueSet
                             );
                     }
                 }
@@ -746,7 +805,12 @@ namespace generate_fhir_prototype_bindings
             {
                 // **** output our data ****
 
-                FhirTypeManager.OutputTypeScript(writer, options.OutputNamespace, options.TypesToOutput);
+                FhirTypeManager.OutputTypeScript(
+                    writer, 
+                    options.OutputNamespace, 
+                    options.TypesToOutput,
+                    options.ExcludeCodes
+                    );
             }
         }
 

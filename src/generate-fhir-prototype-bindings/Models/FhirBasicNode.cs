@@ -104,10 +104,12 @@ namespace generate_fhir_prototype_bindings.Models
         ///
         /// <remarks>Gino Canessa, 7/12/2019.</remarks>
         ///
+        /// <param name="excludeCodes">True to exclude, false to include the codes.</param>
+        ///
         /// <returns>The type script string.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        public virtual string GetTypeScriptString()
+        public virtual string GetTypeScriptString(bool excludeCodes = false)
         {
             return string.Empty;
         }
@@ -117,10 +119,19 @@ namespace generate_fhir_prototype_bindings.Models
         ///
         /// <remarks>Gino Canessa, 7/31/2019.</remarks>
         ///
+        /// <param name="languagePrimitiveDict">Dictionary of language primitives.</param>
+        /// <param name="useLowerCaseName">     (Optional) True to use lower case name.</param>
+        /// <param name="excludeCodes">             (Optional) True to exclude, false to include the
+        ///                                         codes.</param>
+        ///
         /// <returns>The C# string.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        public virtual string GetCSharpString(Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, bool useLowerCaseName = false)
+        public virtual string GetCSharpString(
+                                            Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, 
+                                            bool useLowerCaseName = false,
+                                            bool excludeCodes = false
+                                            )
         {
             return string.Empty;
         }

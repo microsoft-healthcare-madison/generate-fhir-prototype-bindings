@@ -146,7 +146,7 @@ namespace generate_fhir_prototype_bindings.Models
         /// <returns>The TypeScript definition string.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        public override string GetTypeScriptString()
+        public override string GetTypeScriptString(bool excludeCodes = false)
         {
             // **** determine if this is a basic type or one with properties ****
 
@@ -155,13 +155,31 @@ namespace generate_fhir_prototype_bindings.Models
                 return GetTypeScriptStringBasic();
             }
 
-            return GetTypeScriptStringComplex();
+            return GetTypeScriptStringComplex(excludeCodes);
         }
 
-        public override string GetCSharpString(Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, bool useLowerCaseName = false)
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets C# string.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/21/2019.</remarks>
+        ///
+        /// <param name="languagePrimitiveDict">Dictionary of language primitives.</param>
+        /// <param name="useLowerCaseName">     (Optional) True to use lower case name.</param>
+        /// <param name="excludeCodes">             (Optional) True to exclude, false to include the
+        ///                                         codes.</param>
+        ///
+        /// <returns>The C# string.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        public override string GetCSharpString(
+                                                Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, 
+                                                bool useLowerCaseName = false,
+                                                bool excludeCodes = false
+                                                )
         {
             StringBuilder sb = new StringBuilder();
             StringBuilder enumSB = new StringBuilder();
+            StringBuilder valueSetSB = new StringBuilder();
 
             string comment = Comment.Replace("\n", "\n/// ").Replace("\r", "");
 
@@ -204,9 +222,16 @@ namespace generate_fhir_prototype_bindings.Models
                 
                 // **** check for having a code value list ****
 
-                if (Properties[name].CodeValues != null)
+                if ((!excludeCodes) && (Properties[name].CodeValues != null))
                 {
-                    enumSB.Append(Properties[name].GetCSharpCodeEnum(NameCapitalized));
+                    enumSB.Append(Properties[name].GetCSharpCodesString(NameCapitalized));
+                }
+
+                // **** check for having a Value Set ****
+
+                if (!string.IsNullOrEmpty(Properties[name].ValueSetUrl))
+                {
+                    valueSetSB.Append(Properties[name].GetCSharpValueSetString(NameCapitalized));
                 }
             }
 
@@ -216,7 +241,7 @@ namespace generate_fhir_prototype_bindings.Models
 
             // **** return our string ****
 
-            return enumSB.ToString() + sb.ToString();
+            return valueSetSB.ToString() + enumSB.ToString() + sb.ToString();
         }
 
 
@@ -231,10 +256,11 @@ namespace generate_fhir_prototype_bindings.Models
             return $"/**\n * {comment}\n * From: {SourceFilename}\n */\nexport type {Name} = {TypeName};\n";
         }
 
-        private string GetTypeScriptStringComplex()
+        private string GetTypeScriptStringComplex(bool excludeCodes)
         {
             StringBuilder sb = new StringBuilder();
             StringBuilder enumSB = new StringBuilder();
+            StringBuilder valueSetSB = new StringBuilder();
 
             string comment = Comment.Replace("\n", "\n * ").Replace("\r", "");
 
@@ -273,9 +299,16 @@ namespace generate_fhir_prototype_bindings.Models
 
                 // **** check for having a code value list ****
 
-                if (Properties[name].CodeValues != null)
+                if ((!excludeCodes) && (Properties[name].CodeValues != null))
                 {
-                    enumSB.Append(Properties[name].GetTypeScriptCodeEnum(NameCapitalized));
+                    enumSB.Append(Properties[name].GetTypeScriptCodesString(NameCapitalized));
+                }
+
+                // **** check for having a Value Set ****
+
+                if (!string.IsNullOrEmpty(Properties[name].ValueSetUrl))
+                {
+                    valueSetSB.Append(Properties[name].GetTypeScriptValueSetString(NameCapitalized));
                 }
             }
 
@@ -285,7 +318,7 @@ namespace generate_fhir_prototype_bindings.Models
 
             // **** return our string ****
 
-            return enumSB.ToString() + sb.ToString();
+            return valueSetSB.ToString() + enumSB.ToString() + sb.ToString();
         }
 
 

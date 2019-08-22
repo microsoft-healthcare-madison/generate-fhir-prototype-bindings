@@ -1,4 +1,5 @@
-﻿using System;
+﻿using generate_fhir_prototype_bindings.Managers;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -40,6 +41,14 @@ namespace generate_fhir_prototype_bindings.Models
 
         public string[] CodeValues { get; set; }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets or sets the value set key.</summary>
+        ///
+        /// <value>The value set key.</value>
+        ///-------------------------------------------------------------------------------------------------
+
+        public string ValueSetUrl { get; set; }
+
         #endregion Instance Variables . . .
 
         #region Constructors . . .
@@ -49,7 +58,8 @@ namespace generate_fhir_prototype_bindings.Models
                                                 string typeName,
                                                 string comment,
                                                 string cardinality,
-                                                string[] codeValues = null
+                                                string[] codeValues = null,
+                                                string valueSetUrl = null
                                                 )
         {
             // **** do not allow properties without names ****
@@ -116,6 +126,7 @@ namespace generate_fhir_prototype_bindings.Models
                 IsArray = (!string.IsNullOrEmpty(cardinality) && !cardinality.EndsWith('1')) ? true : false,
                 IsOptional = (cardinality.StartsWith("0")) ? true : false,
                 CodeValues = codeValues,
+                ValueSetUrl = valueSetUrl,
             };
 
             return node;
@@ -213,7 +224,7 @@ namespace generate_fhir_prototype_bindings.Models
         /// <returns>The TypeScript definition string.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        public override string GetTypeScriptString()
+        public override string GetTypeScriptString(bool excludeCodes = false)
         {
             // **** skip fields with no type (are defined in base object) ****
 
@@ -248,7 +259,7 @@ namespace generate_fhir_prototype_bindings.Models
         /// <returns>The type script code enum.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        public string GetTypeScriptCodeEnum(string parentName)
+        public string GetTypeScriptCodesString(string parentName)
         {
             if ((CodeValues == null) || (CodeValues.Length == 0))
             {
@@ -282,6 +293,23 @@ namespace generate_fhir_prototype_bindings.Models
 
             return sb.ToString();
         }
+
+        public string GetTypeScriptValueSetString(string parentName)
+        {
+            // **** return our string ****
+
+            return FhirTypeManager.GetTypeScriptValueSetString($"{parentName}{NameCapitalized}", ValueSetUrl);
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Mangle code for output.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="input">The input.</param>
+        /// <param name="name"> [out] The name.</param>
+        /// <param name="value">[out] The value.</param>
+        ///-------------------------------------------------------------------------------------------------
 
         private void MangleCodeForOutput(string input, out string name, out string value)
         {
@@ -328,7 +356,11 @@ namespace generate_fhir_prototype_bindings.Models
         /// <returns>The C# string.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        public override string GetCSharpString(Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, bool useLowerCaseName = false)
+        public override string GetCSharpString(
+                                                Dictionary<string, LanguagePrimitiveType> languagePrimitiveDict, 
+                                                bool useLowerCaseName = false,
+                                                bool excludeCodes = false
+                                                )
         {
             // **** skip fields with no type (are defined in base object) ****
 
@@ -369,7 +401,7 @@ namespace generate_fhir_prototype_bindings.Models
         /// <returns>The C# code enum.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        public string GetCSharpCodeEnum(string parentName)
+        public string GetCSharpCodesString(string parentName)
         {
             if ((CodeValues == null) || (CodeValues.Length == 0))
             {
@@ -386,7 +418,7 @@ namespace generate_fhir_prototype_bindings.Models
 
             sb.Append($"\tpublic sealed class {parentName}{NameCapitalized}Codes {{\n");
 
-            // **** start adding values **** BundleEntrySearchModeCodes
+            // **** start adding values ****
 
             foreach (string code in CodeValues)
             {
@@ -402,6 +434,23 @@ namespace generate_fhir_prototype_bindings.Models
             // **** return our string ****
 
             return sb.ToString();
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets C# code system string.</summary>
+        ///
+        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        ///
+        /// <param name="parentName">Name of the parent.</param>
+        ///
+        /// <returns>The C# code system string.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        public string GetCSharpValueSetString(string parentName)
+        {
+            // **** return our string ****
+
+            return FhirTypeManager.GetCSharpValueSetString($"{parentName}{NameCapitalized}", ValueSetUrl);
         }
 
 

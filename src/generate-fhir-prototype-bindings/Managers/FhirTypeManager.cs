@@ -29,6 +29,8 @@ namespace generate_fhir_prototype_bindings.Managers
 
         private static Regex _regexSanitizeForProperty;
 
+        private static HashSet<string> _reservedWordsSet;
+
         #endregion Class Variables . . .
 
         #region Instance Variables . . .
@@ -87,6 +89,88 @@ namespace generate_fhir_prototype_bindings.Managers
 
             _regexRemoveParenthesesContent = new Regex(_regexRemoveParenthesesContentDefinition);
             _regexSanitizeForProperty = new Regex(_regexSanitizeForPropertyDefinition);
+
+            _reservedWordsSet = new HashSet<string>()
+            {
+                "abstract",
+                "as",
+                "base",
+                "bool",
+                "break",
+                "byte",
+                "case",
+                "catch",
+                "char",
+                "checked",
+                "class",
+                "const",
+                "continue",
+                "decimal",
+                "default",
+                "delegate",
+                "do",
+                "double",
+                "else",
+                "enum",
+                "event",
+                "explicit",
+                "extern",
+                "false",
+                "finally",
+                "fixed",
+                "float",
+                "for",
+                "foreach",
+                "goto",
+                "if",
+                "implicit",
+                "in",
+                "int",
+                "interface",
+                "internal",
+                "is",
+                "lock",
+                "long",
+                "namespace",
+                "new",
+                "null",
+                "object",
+                "operator",
+                "out",
+                "override",
+                "params",
+                "private",
+                "protected",
+                "public",
+                "readonly",
+                "ref",
+                "return",
+                "sbyte",
+                "sealed",
+                "short",
+                "sizeof",
+                "stackalloc",
+                "static",
+                "string",
+                "struct",
+                "switch",
+                "this",
+                "throw",
+                "true",
+                "try",
+                "typeof",
+                "uint",
+                "ulong",
+                "unchecked",
+                "unsafe",
+                "ushort",
+                "using",
+                "static",
+                "virtual",
+                "void",
+                "volatile",
+                "while"
+            };
         }
 
         #endregion Constructors . . .
@@ -655,9 +739,9 @@ namespace generate_fhir_prototype_bindings.Managers
 
             value = _regexSanitizeForProperty.Replace(value, "_");
 
-            // **** need to check for all digits or underscores ****
+            // **** need to check for all digits or underscores, or reserved word ****
 
-            if (RequiresAlpha(value))
+            if ((RequiresAlpha(value)) || (_reservedWordsSet.Contains(value)))
             {
                 return $"VAL_{value}";
             }
@@ -856,7 +940,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
                     // **** start our coding ****
 
-                    sb.Append($"\t\tpublic readonly Coding {SanitizeForProperty(concept.Code)} = new Coding\n\t\t{{\n");
+                    sb.Append($"\t\tpublic static readonly Coding {SanitizeForProperty(concept.Code)} = new Coding\n\t\t{{\n");
                     sb.Append($"\t\t\tCode = \"{concept.Code}\",\n");
                     if (!string.IsNullOrEmpty(concept.Display))
                     {

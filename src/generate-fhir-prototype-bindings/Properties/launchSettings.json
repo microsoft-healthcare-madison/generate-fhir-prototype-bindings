@@ -2,7 +2,7 @@
   "profiles": {
     "generate-fhir-prototype-bindings": {
       "commandName": "Project",
-      "commandLineArgs": "-i c:/git/fhir -o c:/temp/convert/fhir --cs --ts --types-for-xml-sheets Topic|Subscription"
+      "commandLineArgs": "-i c:/git/fhir -o c:/temp/convert/fhir_full --cs --ts"
     }
   }
 }

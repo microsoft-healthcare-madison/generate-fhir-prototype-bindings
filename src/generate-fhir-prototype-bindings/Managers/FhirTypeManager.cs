@@ -56,6 +56,7 @@ namespace generate_fhir_prototype_bindings.Managers
         private Dictionary<string, string> _urlValueSetSystemDict;
 
         private HashSet<string> _writtenValueSets;
+        private HashSet<string> _writtenValueCodes;
 
         #endregion Instance Variables . . .
 
@@ -86,6 +87,7 @@ namespace generate_fhir_prototype_bindings.Managers
             _urlValueSetSystemDict = new Dictionary<string, string>();
 
             _writtenValueSets = new HashSet<string>();
+            _writtenValueCodes = new HashSet<string>();
 
             _regexRemoveParenthesesContent = new Regex(_regexRemoveParenthesesContentDefinition);
             _regexSanitizeForProperty = new Regex(_regexSanitizeForPropertyDefinition);
@@ -692,7 +694,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
             if (value.Contains("<="))
             {
-                value = value.Replace("<=", "LESS_THAN_OR_EQUAL");
+                value = value.Replace("<=", "LESS_THAN_OR_EQUALS");
             }
 
             if (value.Contains("<"))
@@ -702,7 +704,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
             if (value.Contains(">="))
             {
-                value = value.Replace(">=", "GREATER_THAN_OR_EQUAL");
+                value = value.Replace(">=", "GREATER_THAN_OR_EQUALS");
             }
 
             if (value.Contains(">"))
@@ -712,7 +714,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
             if (value.Contains("!="))
             {
-                value = value.Replace("!=", "NOT_EQUAL");
+                value = value.Replace("!=", "NOT_EQUALS");
             }
 
             if (value.Contains("=="))
@@ -771,7 +773,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
             fhir.ValueSet valueSet = _urlValueSetDict[valueSetUrl];
 
-            string sanitizedName = SanitizeForProperty(valueSet.Name);
+            string sanitizedValueSetName = SanitizeForProperty(valueSet.Name);
 
             // **** ****
 
@@ -781,7 +783,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
             // **** check if we need to output the base class ****
 
-            if (!_writtenValueSets.Contains(valueSetUrl))
+            if (!_writtenValueSets.Contains(sanitizedValueSetName))
             {
                 string comment;
                 
@@ -801,14 +803,28 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 // **** start our high-order statements ****
 
-                interfaceSB.Append($"interface {sanitizedName}_Interface {{\n");
-                exportSB.Append($"export const {sanitizedName}: {sanitizedName}_Interface = {{\n");
+                interfaceSB.Append($"interface {sanitizedValueSetName}_Interface {{\n");
+                exportSB.Append($"export const {sanitizedValueSetName}: {sanitizedValueSetName}_Interface = {{\n");
+
+                // **** check for empty value set ****
+
+                if (_urlValueSetConceptsDict[valueSetUrl].Length == 0)
+                {
+                    return "";
+                }
 
                 // **** traverse the expanded values ****
 
                 foreach (fhir.CodeSystemConcept concept in _urlValueSetConceptsDict[valueSetUrl])
                 {
                     string sanitizedCodeName = SanitizeForProperty(concept.Code);
+
+                    if (_writtenValueCodes.Contains(sanitizedCodeName))
+                    {
+                        continue;
+                    }
+
+                    _writtenValueCodes.Add(sanitizedCodeName);
 
                     // **** figure out the proper comment ****
 
@@ -827,11 +843,11 @@ namespace generate_fhir_prototype_bindings.Managers
 
                     // **** build the internal variable ****
 
-                    codingSB.Append($"const {sanitizedName}_{sanitizedCodeName}: Coding = {{\n");
+                    codingSB.Append($"const {sanitizedValueSetName}_{sanitizedCodeName}: Coding = {{\n");
                     codingSB.Append($"\t\tcode: \"{concept.Code}\",\n");
                     if (!string.IsNullOrEmpty(concept.Display))
                     {
-                        codingSB.Append($"\t\tdisplay: \"{concept.Display}\",\n");
+                        codingSB.Append($"\t\tdisplay: \"{concept.Display.Replace("\"", "\\\"")}\",\n");
                     }
                     codingSB.Append($"\t\tsystem: \"{_urlValueSetSystemDict[valueSetUrl]}\"\n");
                     codingSB.Append($"\t}};\n");
@@ -843,7 +859,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
                     // **** add this code to our export ****
 
-                    exportSB.Append($"\t{sanitizedCodeName}: {sanitizedName}_{sanitizedCodeName},\n");
+                    exportSB.Append($"\t{sanitizedCodeName}: {sanitizedValueSetName}_{sanitizedCodeName},\n");
                 }
 
                 // **** close our interface and export **** 
@@ -853,13 +869,13 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 // **** flag written ****
 
-                _writtenValueSets.Add(valueSetUrl);
+                _writtenValueSets.Add(sanitizedValueSetName);
             }
 
             // **** add our alias ****
 
             exportSB.Append($"/*\n * ValueSet alias for {valueSetUrl}\n */\n" +
-                $"export const {SanitizeForProperty(alias)}Values = {sanitizedName};\n");
+                $"export const {SanitizeForProperty(alias)}Values = {sanitizedValueSetName};\n");
 
             // **** flag written ****
 
@@ -890,13 +906,15 @@ namespace generate_fhir_prototype_bindings.Managers
 
             fhir.ValueSet valueSet = _urlValueSetDict[valueSetUrl];
 
+            string sanitizedValueSetName = SanitizeForProperty(valueSet.Name);
+
             // **** ****
 
             StringBuilder sb = new StringBuilder();
 
             // **** check if we need to output the base class ****
 
-            if (!_writtenValueSets.Contains(valueSetUrl))
+            if (!_writtenValueSets.Contains(sanitizedValueSetName))
             {
                 string comment;
 
@@ -915,12 +933,28 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 // **** start our value set ****
 
-                sb.Append($"\tpublic abstract class {SanitizeForProperty(valueSet.Name)}\n\t{{\n");
+                sb.Append($"\tpublic abstract class {sanitizedValueSetName}\n\t{{\n");
+
+                // **** check for empty value set ****
+
+                if (_urlValueSetConceptsDict[valueSetUrl].Length == 0)
+                {
+                    return "";
+                }
 
                 // **** traverse the expanded values ****
 
                 foreach (fhir.CodeSystemConcept concept in _urlValueSetConceptsDict[valueSetUrl])
                 {
+                    string sanitizedCodeName = SanitizeForProperty(concept.Code);
+
+                    if (_writtenValueCodes.Contains(sanitizedCodeName))
+                    {
+                        continue;
+                    }
+
+                    _writtenValueCodes.Add(sanitizedCodeName);
+
                     if (!string.IsNullOrEmpty(concept.Definition))
                     {
                         comment = concept.Definition.Replace("\n", "\n\t\t/// ").Replace("\r", "");
@@ -940,11 +974,11 @@ namespace generate_fhir_prototype_bindings.Managers
 
                     // **** start our coding ****
 
-                    sb.Append($"\t\tpublic static readonly Coding {SanitizeForProperty(concept.Code)} = new Coding\n\t\t{{\n");
+                    sb.Append($"\t\tpublic static readonly Coding {sanitizedCodeName} = new Coding\n\t\t{{\n");
                     sb.Append($"\t\t\tCode = \"{concept.Code}\",\n");
                     if (!string.IsNullOrEmpty(concept.Display))
                     {
-                        sb.Append($"\t\t\tDisplay = \"{concept.Display}\",\n");
+                        sb.Append($"\t\t\tDisplay = \"{concept.Display.Replace("\"", "\\\"")}\",\n");
                     }
                     sb.Append($"\t\t\tSystem = \"{_urlValueSetSystemDict[valueSetUrl]}\"\n");
                     sb.Append($"\t\t}};\n");
@@ -956,7 +990,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
                 // **** flag written ****
 
-                _writtenValueSets.Add(valueSetUrl);
+                _writtenValueSets.Add(sanitizedValueSetName);
             }
 
             // **** add our alias ****
@@ -964,9 +998,9 @@ namespace generate_fhir_prototype_bindings.Managers
             sb.Append($"\t\t///<summary>ValueSet alias for {valueSetUrl}</summary>\n" +
                 $"\tpublic abstract class {SanitizeForProperty(alias)}Values : {SanitizeForProperty(valueSet.Name)} {{ }}\n");
 
-            // **** flag written ****
+            //// **** flag written ****
 
-            _writtenValueSets.Add(alias);
+            //_writtenValueSets.Add(alias);
 
             // **** return our string ****
 
@@ -1735,6 +1769,7 @@ namespace generate_fhir_prototype_bindings.Managers
             // **** have not written any code systems ****
 
             _writtenValueSets.Clear();
+            _writtenValueCodes.Clear();
 
             // **** write our header ****
 

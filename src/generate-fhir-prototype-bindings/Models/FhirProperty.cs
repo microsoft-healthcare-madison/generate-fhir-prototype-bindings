@@ -322,27 +322,7 @@ namespace generate_fhir_prototype_bindings.Models
 
             value = name;
 
-            switch (name)
-            {
-                case "<":
-                    name = "LESS_THAN";
-                    break;
-                case "<=":
-                    name = "LESS_THAN_OR_EQUAL";
-                    break;
-                case ">=":
-                    name = "GREATER_THAN_OR_EQUAL";
-                    break;
-                case ">":
-                    name = "GREATER_THAN";
-                    break;
-                case "=":
-                    name = "EQUALS";
-                    break;
-                default:
-                    name = name.ToUpper().Replace("-", "_").Replace("/", "_").Replace(".", "");
-                    break;
-            }
+            name = FhirTypeManager.SanitizeForProperty(name);
         }
 
         ///-------------------------------------------------------------------------------------------------

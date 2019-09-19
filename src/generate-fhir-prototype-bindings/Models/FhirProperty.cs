@@ -49,6 +49,14 @@ namespace generate_fhir_prototype_bindings.Models
 
         public string ValueSetUrl { get; set; }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Gets or sets the cardinality.</summary>
+        ///
+        /// <value>The cardinality.</value>
+        ///-------------------------------------------------------------------------------------------------
+
+        public string Cardinality { get; set; }
+
         #endregion Instance Variables . . .
 
         #region Constructors . . .
@@ -124,6 +132,7 @@ namespace generate_fhir_prototype_bindings.Models
                 Comment = comment,
                 TypeName = typeName,
                 IsArray = (!string.IsNullOrEmpty(cardinality) && !cardinality.EndsWith('1')) ? true : false,
+                Cardinality = cardinality,
                 IsOptional = (cardinality.StartsWith("0")) ? true : false,
                 CodeValues = codeValues,
                 ValueSetUrl = valueSetUrl,
@@ -202,6 +211,7 @@ namespace generate_fhir_prototype_bindings.Models
                 Comment = comment,
                 TypeName = typeName,
                 IsArray = isArray,
+                Cardinality = "?",
                 IsOptional = isOptional,
             };
 

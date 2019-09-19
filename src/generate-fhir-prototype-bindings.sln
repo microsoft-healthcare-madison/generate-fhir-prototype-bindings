@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\THIRDPARTYNOTICES.md = ..\THIRDPARTYNOTICES.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test-bindings-cs", "test-bindings-cs\test-bindings-cs.csproj", "{BC57C558-6999-4753-8388-C80EB4DE74EC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,6 +25,10 @@ Global
 		{6CF68CF0-F699-4732-8132-4EB567050F3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6CF68CF0-F699-4732-8132-4EB567050F3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6CF68CF0-F699-4732-8132-4EB567050F3D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC57C558-6999-4753-8388-C80EB4DE74EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC57C558-6999-4753-8388-C80EB4DE74EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC57C558-6999-4753-8388-C80EB4DE74EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC57C558-6999-4753-8388-C80EB4DE74EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

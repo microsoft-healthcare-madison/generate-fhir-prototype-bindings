@@ -110,9 +110,9 @@ namespace generate_fhir_prototype_bindings.Languages
                                 bool useLowerCaseName
                                 )
         {
-            string name = useLowerCaseName
-                ? FhirTypeManager.SanitizeForProperty(property.Name, _reservedWordsSet)
-                : FhirTypeManager.SanitizeForProperty(property.NameCapitalized, _reservedWordsSet);
+            // **** always use lower-case start ****
+
+            string name = FhirTypeManager.SanitizeForProperty(property.Name, _reservedWordsSet);
 
             string comment = FhirTypeManager.SanitizeComment(property.Comment, _lineComment, _indentChar, 2);
 
@@ -125,6 +125,7 @@ namespace generate_fhir_prototype_bindings.Languages
                 sb.Append(
                     $"\t/**\n" +
                     $"\t * {comment}\n" +
+                    //$"\t * Cardinality: {property.Cardinality}\n" +
                     $"\t */\n" +
                     $"\t{name}{optionalFlagString}: {typeName}[];\n" +
                     $"\t/**\n" +
@@ -139,6 +140,7 @@ namespace generate_fhir_prototype_bindings.Languages
             sb.Append(
                 $"\t/**\n" +
                 $"\t * {comment}\n" +
+                //$"\t * Cardinality: {property.Cardinality}\n" +
                 $"\t */\n" +
                 $"\t{name}{optionalFlagString}: {typeName};\n" +
                 $"\t/**\n" +
@@ -319,12 +321,12 @@ namespace generate_fhir_prototype_bindings.Languages
             // **** coding is exported inline (before internal and external interfaces) ****
 
             sb.Append($"const {sanitizedValueSetName}_{sanitizedCodeName}: Coding = {{\n");
-            sb.Append($"\t\tCode: \"{concept.Code}\",\n");
+            sb.Append($"\t\tcode: \"{concept.Code}\",\n");
             if (!string.IsNullOrEmpty(concept.Display))
             {
-                sb.Append($"\t\tDisplay: \"{concept.Display.Replace("\"", "\\\"")}\",\n");
+                sb.Append($"\t\tdisplay: \"{concept.Display.Replace("\"", "\\\"")}\",\n");
             }
-            sb.Append($"\t\tSystem: \"{systemUrl}\"\n");
+            sb.Append($"\t\tsystem: \"{systemUrl}\"\n");
             sb.Append($"\t}};\n");
 
             // **** add this code to our interface ****

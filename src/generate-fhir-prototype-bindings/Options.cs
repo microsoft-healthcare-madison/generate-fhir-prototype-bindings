@@ -53,6 +53,9 @@ namespace generate_fhir_prototype_bindings
         [Option("cs", Default = false, Hidden = false, HelpText = "Generate C# bindings")]
         public bool LanguageCSharp { get; set; }
 
+        [Option("cs-no-newtonsoft", Default = false, Hidden = false, HelpText = "Generate C# bindings WITHOUT Newtonsoft.Json support")]
+        public bool LanguageCSharpRaw { get; set; }
+
         #endregion Language Options . . .
 
         #region Generator Options . . .

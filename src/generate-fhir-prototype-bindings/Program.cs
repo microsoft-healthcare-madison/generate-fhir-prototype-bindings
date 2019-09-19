@@ -116,6 +116,11 @@ namespace generate_fhir_prototype_bindings
                 WriteCSharp(options);
             }
 
+            if (options.LanguageCSharpRaw)
+            {
+                WriteCSharpNoNewtonsoft(options);
+            }
+
             // **** done ****
 
             Console.WriteLine("...Done!");
@@ -735,7 +740,6 @@ namespace generate_fhir_prototype_bindings
             return true;
         }
 
-
         ///-------------------------------------------------------------------------------------------------
         /// <summary>Writes a C#.</summary>
         ///
@@ -769,7 +773,6 @@ namespace generate_fhir_prototype_bindings
 
             using (StreamWriter writer = new StreamWriter(filename))
             {
-
                 // **** output our data ****
 
                 FhirTypeManager.OutputForLang(
@@ -779,9 +782,50 @@ namespace generate_fhir_prototype_bindings
                     options.OutputNamespace,
                     options.ExcludeCodes
                     );
+                writer.Flush();
+            }
+        }
+
+
+        static void WriteCSharpNoNewtonsoft(Options options)
+        {
+            LanguageCSharp lang = new LanguageCSharp();
+            lang.IncludeNewtonsoftAnnotations = false;
+
+            string filename;
+
+            // **** check for having an extension ****
+
+            if (Path.HasExtension(options.OutputFile))
+            {
+                filename = options.OutputFile;
+            }
+            else
+            {
+                filename = $"{options.OutputFile}.{((ILanguangeExporter)lang).SourceFileExtension}";
             }
 
+            // **** ****
+
+            Console.WriteLine($"Writing C# file WITHOUT Newtonsoft Json support: {filename}");
+
+            // **** start our file ****
+
+            using (StreamWriter writer = new StreamWriter(filename))
+            {
+                // **** output our data ****
+
+                FhirTypeManager.OutputForLang(
+                    writer,
+                    lang,
+                    options.TypesToOutput,
+                    options.OutputNamespace,
+                    options.ExcludeCodes
+                    );
+                writer.Flush();
+            }
         }
+
 
         ///-------------------------------------------------------------------------------------------------
         /// <summary>Writes the TypeScript file</summary>
@@ -816,7 +860,6 @@ namespace generate_fhir_prototype_bindings
 
             using (StreamWriter writer = new StreamWriter(filename))
             {
-
                 // **** output our data ****
 
                 FhirTypeManager.OutputForLang(
@@ -826,6 +869,7 @@ namespace generate_fhir_prototype_bindings
                     options.OutputNamespace,
                     options.ExcludeCodes
                     );
+                writer.Flush();
             }
         }
 

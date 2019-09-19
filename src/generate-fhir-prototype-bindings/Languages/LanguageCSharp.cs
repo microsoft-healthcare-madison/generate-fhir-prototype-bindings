@@ -15,7 +15,8 @@ namespace generate_fhir_prototype_bindings.Languages
 
         private const string _lineComment = "///";
         private const char _indentChar = '\t';
-        private const bool _flagOptionals = false;
+        private const bool _flagOptionals = true;
+
 
         #endregion Class Constants . . .
 
@@ -34,6 +35,13 @@ namespace generate_fhir_prototype_bindings.Languages
         private static HashSet<string> _reservedWordsSet;
 
         #endregion Class Variables . . .
+
+        #region Instance Variables . . .
+
+        public bool IncludeNewtonsoftAnnotations { get; set; } = true;
+
+        #endregion Instance Variables . . .
+
 
         #region Constructors . . .
 
@@ -173,13 +181,56 @@ namespace generate_fhir_prototype_bindings.Languages
                                 bool useLowerCaseName
                                 )
         {
-            string name = useLowerCaseName 
-                ? FhirTypeManager.SanitizeForProperty(property.Name, _reservedWordsSet) 
-                : FhirTypeManager.SanitizeForProperty(property.NameCapitalized, _reservedWordsSet);
+            string nameCamel = FhirTypeManager.SanitizeForProperty(property.Name, _reservedWordsSet);
+            string namePascal = FhirTypeManager.SanitizeForProperty(property.NameCapitalized, _reservedWordsSet);
+
+            string propertyName;
+            string extendedName;
+
+            if (useLowerCaseName)
+            {
+                propertyName = nameCamel;
+                extendedName = nameCamel;
+            }
+            else
+            {
+                if (IncludeNewtonsoftAnnotations)
+                {
+                    propertyName = namePascal;
+                    extendedName = namePascal;
+                }
+                else
+                {
+                    propertyName = namePascal;
+                    extendedName = nameCamel;
+                }
+            }
+
+            string propertyAnnotation = "";
+            string extendedAnnotation = "";
+
+            if (IncludeNewtonsoftAnnotations)
+            {
+                propertyAnnotation = $"\t\t[JsonProperty(PropertyName = \"{nameCamel}\")]\n";
+                extendedAnnotation = $"\t\t[JsonProperty(PropertyName = \"_{nameCamel}\")]\n";
+            }
 
             string comment = FhirTypeManager.SanitizeComment(property.Comment, _lineComment, _indentChar, 2);
 
             string optionalFlagString = (_flagOptionals && property.IsOptional) ? "?" : "";
+
+            // **** nullable reference types are not allowed in current C# ****
+
+            switch (typeName)
+            {
+                case "bool":
+                case "decimal":
+                    // **** ignore - use current style ****
+                break;
+                default:
+                    optionalFlagString = "";
+                    break;
+            }
 
             // **** ****
 
@@ -187,18 +238,22 @@ namespace generate_fhir_prototype_bindings.Languages
             {
                 sb.Append(
                     $"\t\t///<summary>{comment}</summary>\n" +
-                    $"\t\tpublic {typeName}[] {name} {{ get; set; }}\n" +
-                    $"\t\t///<summary>May contain extended information for property: '{name}'</summary>\n" +
-                    $"\t\tpublic Element[] _{name} {{ get; set; }}\n");
+                    propertyAnnotation +
+                    $"\t\tpublic {typeName}[] {propertyName} {{ get; set; }}\n" +
+                    $"\t\t///<summary>May contain extended information for property: '{propertyName}'</summary>\n" +
+                    extendedAnnotation +
+                    $"\t\tpublic Element[] _{extendedName} {{ get; set; }}\n");
 
                 return true;
             }
 
             sb.Append(
                 $"\t\t///<summary>{comment}</summary>\n" +
-                $"\t\tpublic {typeName}{optionalFlagString} {name} {{ get; set; }}\n" +
-                $"\t\t///<summary>May contain extended information for property: '{name}'</summary>\n" +
-                $"\t\tpublic Element _{name} {{ get; set; }}\n");
+                propertyAnnotation +
+                $"\t\tpublic {typeName}{optionalFlagString} {propertyName} {{ get; set; }}\n" +
+                $"\t\t///<summary>May contain extended information for property: '{propertyName}'</summary>\n" +
+                extendedAnnotation +
+                $"\t\tpublic Element _{extendedName} {{ get; set; }}\n");
 
             return true;
         }
@@ -270,8 +325,15 @@ namespace generate_fhir_prototype_bindings.Languages
             {
                 sb.Append($"/** Restricted to types: {typesToOutput} **/\n");
             }
-
-            sb.Append("using System;\nusing System.Collections.Generic;\n\n");
+            
+            if (IncludeNewtonsoftAnnotations)
+            {
+                sb.Append("using System;\nusing System.Collections.Generic;\nusing Newtonsoft.Json;\n\n");
+            }
+            else
+            {
+                sb.Append("using System;\nusing System.Collections.Generic;\n\n");
+            }
 
             return true;
         }

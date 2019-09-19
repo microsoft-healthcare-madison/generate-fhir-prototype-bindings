@@ -624,6 +624,11 @@ namespace generate_fhir_prototype_bindings.Managers
         {
             // **** check for symbols we need to replace ****
 
+            if (value.Equals("...", StringComparison.Ordinal))
+            {
+                value = "NONE";
+            }
+
             if (value.Contains("<="))
             {
                 value = value.Replace("<=", "LESS_THAN_OR_EQUALS");
@@ -677,6 +682,11 @@ namespace generate_fhir_prototype_bindings.Managers
 
             if ((RequiresAlpha(value)) || (languageReservedWords.Contains(value)))
             {
+                if (value[0] == '_')
+                {
+                    return $"VAL{value}";
+                }
+
                 return $"VAL_{value}";
             }
 

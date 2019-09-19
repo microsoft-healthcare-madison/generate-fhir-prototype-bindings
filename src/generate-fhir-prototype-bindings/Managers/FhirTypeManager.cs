@@ -8,6 +8,7 @@ using System.IO;
 using System.Collections;
 using fhir;
 using System.Runtime.InteropServices.ComTypes;
+using generate_fhir_prototype_bindings.Languages;
 
 namespace generate_fhir_prototype_bindings.Managers
 {
@@ -28,8 +29,6 @@ namespace generate_fhir_prototype_bindings.Managers
         private static FhirTypeManager _instance;
 
         private static Regex _regexSanitizeForProperty;
-
-        private static HashSet<string> _reservedWordsSet;
 
         #endregion Class Variables . . .
 
@@ -55,7 +54,9 @@ namespace generate_fhir_prototype_bindings.Managers
         private Dictionary<string, fhir.CodeSystemConcept[]> _urlValueSetConceptsDict;
         private Dictionary<string, string> _urlValueSetSystemDict;
 
-        private HashSet<string> _writtenValueSets;
+        private HashSet<string> _writtenValueSetAliases;
+        private HashSet<string> _writtenValueSetNames;
+        private HashSet<string> _writtenValueSetUrls;
         private HashSet<string> _writtenValueCodes;
 
         #endregion Instance Variables . . .
@@ -86,93 +87,13 @@ namespace generate_fhir_prototype_bindings.Managers
             _urlValueSetConceptsDict = new Dictionary<string, fhir.CodeSystemConcept[]>();
             _urlValueSetSystemDict = new Dictionary<string, string>();
 
-            _writtenValueSets = new HashSet<string>();
+            _writtenValueSetAliases = new HashSet<string>();
+            _writtenValueSetNames = new HashSet<string>();
+            _writtenValueSetUrls = new HashSet<string>();
             _writtenValueCodes = new HashSet<string>();
 
             _regexRemoveParenthesesContent = new Regex(_regexRemoveParenthesesContentDefinition);
             _regexSanitizeForProperty = new Regex(_regexSanitizeForPropertyDefinition);
-
-            _reservedWordsSet = new HashSet<string>()
-            {
-                "abstract",
-                "as",
-                "base",
-                "bool",
-                "break",
-                "byte",
-                "case",
-                "catch",
-                "char",
-                "checked",
-                "class",
-                "const",
-                "continue",
-                "decimal",
-                "default",
-                "delegate",
-                "do",
-                "double",
-                "else",
-                "enum",
-                "event",
-                "explicit",
-                "extern",
-                "false",
-                "finally",
-                "fixed",
-                "float",
-                "for",
-                "foreach",
-                "goto",
-                "if",
-                "implicit",
-                "in",
-                "int",
-                "interface",
-                "internal",
-                "is",
-                "lock",
-                "long",
-                "namespace",
-                "new",
-                "null",
-                "object",
-                "operator",
-                "out",
-                "override",
-                "params",
-                "private",
-                "protected",
-                "public",
-                "readonly",
-                "ref",
-                "return",
-                "sbyte",
-                "sealed",
-                "short",
-                "sizeof",
-                "stackalloc",
-                "static",
-                "string",
-                "struct",
-                "switch",
-                "this",
-                "throw",
-                "true",
-                "try",
-                "typeof",
-                "uint",
-                "ulong",
-                "unchecked",
-                "unsafe",
-                "ushort",
-                "using",
-                "static",
-                "virtual",
-                "void",
-                "volatile",
-                "while"
-            };
         }
 
         #endregion Constructors . . .
@@ -287,38 +208,26 @@ namespace generate_fhir_prototype_bindings.Managers
         }
 
         ///-------------------------------------------------------------------------------------------------
-        /// <summary>Output type script.</summary>
+        /// <summary>Output for language.</summary>
         ///
-        /// <remarks>Gino Canessa, 7/8/2019.</remarks>
-        ///
-        /// <param name="writer">         The writer.</param>
-        /// <param name="outputNamespace">The output namespace.</param>
-        /// <param name="matchNames">     List of names of the matches.</param>
-        ///-------------------------------------------------------------------------------------------------
-
-        public static void OutputTypeScript(
-                                            StreamWriter writer, 
-                                            string outputNamespace, 
-                                            string typesToOutput,
-                                            bool excludeCodes
-                                            )
-        {
-            _instance._OutputTypeScript(writer, outputNamespace, typesToOutput, excludeCodes);
-        }
-
-        ///-------------------------------------------------------------------------------------------------
-        /// <summary>Output C#.</summary>
-        ///
-        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
+        /// <remarks>Gino Canessa, 9/19/2019.</remarks>
         ///
         /// <param name="writer">         The writer.</param>
-        /// <param name="outputNamespace">The output namespace.</param>
+        /// <param name="lang">           The language.</param>
         /// <param name="typesToOutput">  The types to output.</param>
+        /// <param name="outputNamespace">The output namespace.</param>
+        /// <param name="excludeCodes">   True to exclude, false to include the codes.</param>
         ///-------------------------------------------------------------------------------------------------
 
-        public static void OutputCSharp(StreamWriter writer, string outputNamespace, string typesToOutput)
+        public static void OutputForLang(
+                                        StreamWriter writer,
+                                        ILanguangeExporter lang,
+                                        string typesToOutput,
+                                        string outputNamespace,
+                                        bool excludeCodes
+                                        )
         {
-            _instance._OutputCSharp(writer, outputNamespace, typesToOutput);
+            _instance._OutputForLanguage(writer, lang, typesToOutput, outputNamespace, excludeCodes);
         }
 
         ///-------------------------------------------------------------------------------------------------
@@ -389,14 +298,15 @@ namespace generate_fhir_prototype_bindings.Managers
             return _instance._ExpandValueSets();
         }
 
-        public static string GetCSharpValueSetString(string alias, string key)
+        public static bool TryGetValueSet(string valueSetUrl, out fhir.ValueSet valueSet)
         {
-            return _instance._GetCSharpValueSetString(alias, key);
-        }
-
-        public static string GetTypeScriptValueSetString(string alias, string key)
-        {
-            return _instance._GetTypeScriptValueSetString(alias, key);
+            if (!_instance._urlValueSetDict.ContainsKey(valueSetUrl))
+            {
+                valueSet = null;
+                return false;
+            }
+            valueSet = _instance._urlValueSetDict[valueSetUrl];
+            return true;
         }
 
         #endregion Class Interface . . .
@@ -677,6 +587,16 @@ namespace generate_fhir_prototype_bindings.Managers
             return false;
         }
 
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Requires alpha.</summary>
+        ///
+        /// <remarks>Gino Canessa, 9/18/2019.</remarks>
+        ///
+        /// <param name="value">The value.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
         private static bool RequiresAlpha(string value)
         {
             foreach (char c in value)
@@ -688,7 +608,19 @@ namespace generate_fhir_prototype_bindings.Managers
             }
             return true;
         }
-        public static string SanitizeForProperty(string value)
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Sanitize for property.</summary>
+        ///
+        /// <remarks>Gino Canessa, 9/18/2019.</remarks>
+        ///
+        /// <param name="value">                The value.</param>
+        /// <param name="languageReservedWords">The language reserved words.</param>
+        ///
+        /// <returns>A string.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        public static string SanitizeForProperty(string value, HashSet<string> languageReservedWords)
         {
             // **** check for symbols we need to replace ****
 
@@ -743,7 +675,7 @@ namespace generate_fhir_prototype_bindings.Managers
 
             // **** need to check for all digits or underscores, or reserved word ****
 
-            if ((RequiresAlpha(value)) || (_reservedWordsSet.Contains(value)))
+            if ((RequiresAlpha(value)) || (languageReservedWords.Contains(value)))
             {
                 return $"VAL_{value}";
             }
@@ -753,260 +685,68 @@ namespace generate_fhir_prototype_bindings.Managers
             return value;
         }
 
-        private string _GetTypeScriptValueSetString(string alias, string valueSetUrl)
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Sanitize for code.</summary>
+        ///
+        /// <remarks>Gino Canessa, 9/18/2019.</remarks>
+        ///
+        /// <param name="input">The input.</param>
+        /// <param name="name"> [out] The name.</param>
+        /// <param name="value">[out] The value.</param>
+        ///-------------------------------------------------------------------------------------------------
+
+        public static void SanitizeForCode(
+                                            string input, 
+                                            HashSet<string>languageReservedWords, 
+                                            out string name, 
+                                            out string value
+                                            )
         {
-            if ((string.IsNullOrEmpty(valueSetUrl)) ||
-                (!_urlValueSetDict.ContainsKey(valueSetUrl)) ||
-                (_writtenValueSets.Contains(alias)))
+            name = input.Trim();
+
+            if (name.Contains(" "))
             {
-                return "";
+                name = name.Substring(0, name.IndexOf(" "));
             }
 
-            // **** make sure we have successfully expanded this value set ****
+            value = name;
 
-            if (!_urlValueSetConceptsDict.ContainsKey(valueSetUrl))
-            {
-                return "";
-            }
-
-            // **** grab our value set ****
-
-            fhir.ValueSet valueSet = _urlValueSetDict[valueSetUrl];
-
-            string sanitizedValueSetName = SanitizeForProperty(valueSet.Name);
-
-            // **** ****
-
-            StringBuilder codingSB = new StringBuilder();
-            StringBuilder interfaceSB = new StringBuilder();
-            StringBuilder exportSB = new StringBuilder();
-
-            // **** check if we need to output the base class ****
-
-            if (!_writtenValueSets.Contains(sanitizedValueSetName))
-            {
-                string comment;
-                
-                if (!string.IsNullOrEmpty(valueSet.Description))
-                {
-                    comment = valueSet.Description.Replace("\n", "\n * ").Replace("\r", "");
-                }
-                else
-                {
-                    comment = $"Expanded ValueSet from {valueSetUrl}";
-                }
-
-                // **** start with a comment ****
-
-                interfaceSB.Append($"/**\n * {comment}\n */\n");
-                exportSB.Append($"/**\n * {comment}\n */\n");
-
-                // **** start our high-order statements ****
-
-                interfaceSB.Append($"interface {sanitizedValueSetName}_Interface {{\n");
-                exportSB.Append($"export const {sanitizedValueSetName}: {sanitizedValueSetName}_Interface = {{\n");
-
-                // **** check for empty value set ****
-
-                if (_urlValueSetConceptsDict[valueSetUrl].Length == 0)
-                {
-                    return "";
-                }
-
-                // **** traverse the expanded values ****
-
-                foreach (fhir.CodeSystemConcept concept in _urlValueSetConceptsDict[valueSetUrl])
-                {
-                    string sanitizedCodeName = SanitizeForProperty(concept.Code);
-
-                    if (_writtenValueCodes.Contains(sanitizedCodeName))
-                    {
-                        continue;
-                    }
-
-                    _writtenValueCodes.Add(sanitizedCodeName);
-
-                    // **** figure out the proper comment ****
-
-                    if (!string.IsNullOrEmpty(concept.Definition))
-                    {
-                        comment = concept.Definition.Replace("\n", "\n\t * ").Replace("\r", "");
-                    }
-                    else if (!string.IsNullOrEmpty(concept.Display))
-                    {
-                        comment = concept.Display.Replace("\n", "\n\t * ").Replace("\r", "");
-                    }
-                    else
-                    {
-                        comment = $"Value for '{concept.Code}'";
-                    }
-
-                    // **** build the internal variable ****
-
-                    codingSB.Append($"const {sanitizedValueSetName}_{sanitizedCodeName}: Coding = {{\n");
-                    codingSB.Append($"\t\tcode: \"{concept.Code}\",\n");
-                    if (!string.IsNullOrEmpty(concept.Display))
-                    {
-                        codingSB.Append($"\t\tdisplay: \"{concept.Display.Replace("\"", "\\\"")}\",\n");
-                    }
-                    codingSB.Append($"\t\tsystem: \"{_urlValueSetSystemDict[valueSetUrl]}\"\n");
-                    codingSB.Append($"\t}};\n");
-
-                    // **** add this code to our interface ****
-
-                    interfaceSB.Append($"\t/**\n\t * {comment}\n\t */\n");
-                    interfaceSB.Append($"\t{sanitizedCodeName}: Coding,\n");
-
-                    // **** add this code to our export ****
-
-                    exportSB.Append($"\t{sanitizedCodeName}: {sanitizedValueSetName}_{sanitizedCodeName},\n");
-                }
-
-                // **** close our interface and export **** 
-
-                interfaceSB.Append("};\n");
-                exportSB.Append("}\n");
-
-                // **** flag written ****
-
-                _writtenValueSets.Add(sanitizedValueSetName);
-            }
-
-            // **** add our alias ****
-
-            exportSB.Append($"/*\n * ValueSet alias for {valueSetUrl}\n */\n" +
-                $"export const {SanitizeForProperty(alias)}Values = {sanitizedValueSetName};\n");
-
-            // **** flag written ****
-
-            _writtenValueSets.Add(alias);
-
-            // **** return our string ****
-
-            return codingSB.ToString() + interfaceSB.ToString() + exportSB.ToString();
+            name = FhirTypeManager.SanitizeForProperty(name, languageReservedWords);
         }
 
-        private string _GetCSharpValueSetString(string alias, string valueSetUrl)
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Sanitize comment.</summary>
+        ///
+        /// <remarks>Gino Canessa, 9/18/2019.</remarks>
+        ///
+        /// <param name="comment">            The comment.</param>
+        /// <param name="languageLineComment">The language line comment.</param>
+        /// <param name="languageIndent">     The language indent.</param>
+        /// <param name="indentation">        (Optional) The indentation.</param>
+        ///
+        /// <returns>A string.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
+        public static string SanitizeComment(
+                                            string comment, 
+                                            string languageLineComment, 
+                                            char languageIndent,
+                                            int indentation = 0
+                                            )
         {
-            if ((string.IsNullOrEmpty(valueSetUrl)) ||
-                (!_urlValueSetDict.ContainsKey(valueSetUrl)) ||
-                (_writtenValueSets.Contains(alias)))
+            switch (indentation)
             {
-                return "";
+                default:
+                case 0:
+                    return comment.Replace("\n", $"\n{languageLineComment} ").Replace("\r", "");
+                case 1:
+                    return comment.Replace("\n", $"\n{languageIndent}{languageLineComment} ").Replace("\r", "");
+                case 2:
+                    return comment.Replace("\n", $"\n{languageIndent}{languageIndent}{languageLineComment} ").Replace("\r", "");
+                case 3:
+                    return comment.Replace("\n", $"\n{languageIndent}{languageIndent}{languageIndent}{languageLineComment} ").Replace("\r", "");
             }
-
-            // **** make sure we have successfully expanded this value set ****
-
-            if (!_urlValueSetConceptsDict.ContainsKey(valueSetUrl))
-            {
-                return "";
-            }
-
-            // **** grab our value set ****
-
-            fhir.ValueSet valueSet = _urlValueSetDict[valueSetUrl];
-
-            string sanitizedValueSetName = SanitizeForProperty(valueSet.Name);
-
-            // **** ****
-
-            StringBuilder sb = new StringBuilder();
-
-            // **** check if we need to output the base class ****
-
-            if (!_writtenValueSets.Contains(sanitizedValueSetName))
-            {
-                string comment;
-
-                if (!string.IsNullOrEmpty(valueSet.Description))
-                {
-                    comment = valueSet.Description.Replace("\n", "\n\t/// ").Replace("\r", "");
-                }
-                else
-                {
-                    comment = $"Expanded ValueSet from {valueSetUrl}";
-                }
-
-                // **** start with a comment ****
-
-                sb.Append($"\t///<summary>{comment}</summary>\n");
-
-                // **** start our value set ****
-
-                sb.Append($"\tpublic abstract class {sanitizedValueSetName}\n\t{{\n");
-
-                // **** check for empty value set ****
-
-                if (_urlValueSetConceptsDict[valueSetUrl].Length == 0)
-                {
-                    return "";
-                }
-
-                // **** traverse the expanded values ****
-
-                foreach (fhir.CodeSystemConcept concept in _urlValueSetConceptsDict[valueSetUrl])
-                {
-                    string sanitizedCodeName = SanitizeForProperty(concept.Code);
-
-                    if (_writtenValueCodes.Contains(sanitizedCodeName))
-                    {
-                        continue;
-                    }
-
-                    _writtenValueCodes.Add(sanitizedCodeName);
-
-                    if (!string.IsNullOrEmpty(concept.Definition))
-                    {
-                        comment = concept.Definition.Replace("\n", "\n\t\t/// ").Replace("\r", "");
-                    }
-                    else if (!string.IsNullOrEmpty(concept.Display))
-                    {
-                        comment = concept.Display.Replace("\n", "\n\t\t/// ").Replace("\r", "");
-                    }
-                    else
-                    {
-                        comment = $"Value for '{concept.Code}'";
-                    }
-
-                    // **** start with a comment ****
-
-                    sb.Append($"\t\t///<summary>{comment}</summary>\n");
-
-                    // **** start our coding ****
-
-                    sb.Append($"\t\tpublic static readonly Coding {sanitizedCodeName} = new Coding\n\t\t{{\n");
-                    sb.Append($"\t\t\tCode = \"{concept.Code}\",\n");
-                    if (!string.IsNullOrEmpty(concept.Display))
-                    {
-                        sb.Append($"\t\t\tDisplay = \"{concept.Display.Replace("\"", "\\\"")}\",\n");
-                    }
-                    sb.Append($"\t\t\tSystem = \"{_urlValueSetSystemDict[valueSetUrl]}\"\n");
-                    sb.Append($"\t\t}};\n");
-                }
-
-                // **** close our class **** 
-
-                sb.Append($"\t}};\n");
-
-                // **** flag written ****
-
-                _writtenValueSets.Add(sanitizedValueSetName);
-            }
-
-            // **** add our alias ****
-
-            sb.Append($"\t\t///<summary>ValueSet alias for {valueSetUrl}</summary>\n" +
-                $"\tpublic abstract class {SanitizeForProperty(alias)}Values : {SanitizeForProperty(valueSet.Name)} {{ }}\n");
-
-            //// **** flag written ****
-
-            //_writtenValueSets.Add(alias);
-
-            // **** return our string ****
-
-            return sb.ToString();
         }
-
 
         private bool _LoadValueSet(fhir.ValueSet valueSet, string filename)
         {
@@ -1748,226 +1488,321 @@ namespace generate_fhir_prototype_bindings.Managers
             }
         }
 
-        ///-------------------------------------------------------------------------------------------------
-        /// <summary>Output type script.</summary>
-        ///
-        /// <remarks>Gino Canessa, 7/9/2019.</remarks>
-        ///
-        /// <param name="writer">         The writer.</param>
-        /// <param name="outputNamespace">The output namespace.</param>
-        /// <param name="typesToOutput">  The types to output.</param>
-        /// <param name="excludeCodes">   True to exclude, false to include the codes.</param>
-        ///-------------------------------------------------------------------------------------------------
-
-        private void _OutputTypeScript(
-                                        StreamWriter writer, 
-                                        string outputNamespace, 
+        private void _OutputForLanguage(
+                                        StreamWriter writer,
+                                        ILanguangeExporter lang,
                                         string typesToOutput,
+                                        string outputNamespace,
                                         bool excludeCodes
                                         )
         {
+            StringBuilder fileSB = new StringBuilder();
+
+            StringBuilder typeSB = new StringBuilder();
+            StringBuilder enumSB = new StringBuilder();
+            StringBuilder valueSetSB = new StringBuilder();
+
             // **** have not written any code systems ****
 
-            _writtenValueSets.Clear();
+            _writtenValueSetAliases.Clear();
+            _writtenValueSetNames.Clear();
+            _writtenValueSetUrls.Clear();
             _writtenValueCodes.Clear();
 
-            // **** write our header ****
+            // **** get the header ****
 
-            writer.Write($"/** GENERATED FILE **/\n");
-            writer.Write($"/** Generated by: {Environment.UserName} at {DateTime.Now} **/\n");
+            lang.AppendFileHeader(ref fileSB, typesToOutput);
 
-            if (!string.IsNullOrEmpty(typesToOutput))
-            {
-                writer.Write($"/** Restricted to types: {typesToOutput} **/\n");
-            }
-            
-            //// **** start with our module ****
+            // **** open our module ****
 
-            //writer.Write($"export module {outputNamespace} {{\n");
+            lang.AppendModuleOpen(ref fileSB, outputNamespace);
 
-            // **** sort by name ****
-
-            _fhirPrimitives.Sort();
-
-            // **** first loop is for basic types within primitives ****
-
-            foreach (string primitiveName in _fhirPrimitives)
-            {
-                // **** grab our node ****
-
-                FhirType node = _fhirTypeDict[primitiveName];
-
-                // **** skip what we do not want ****
-
-                if ((node.IsCircular) || (node.Properties.Count != 0))
-                {
-                    continue;
-                }
-
-                // **** output to our file ****
-
-                writer.Write(node.GetTypeScriptString());
-            }
-
-            // **** second loop is for Resources types within primitives ****
-
-            foreach (string primitiveName in _fhirPrimitives)
-            {
-                // **** grab our node ****
-
-                FhirType node = _fhirTypeDict[primitiveName];
-
-                // **** skip what we do not want ****
-
-                if (node.Properties.Count == 0)
-                {
-                    continue;
-                }
-
-                // **** output to our file ****
-
-                writer.Write(node.GetTypeScriptString());
-            }
-
-            // **** output the rest of the types ****
-
-            List<string> nodeNames = _fhirTypeDict.Keys.ToList<string>();
-            nodeNames.Sort();
-
-            foreach (string nodeName in nodeNames)
-            {
-                // **** grab our node ****
-
-                FhirType node = _fhirTypeDict[nodeName];
-
-                if (node == null)
-                {
-                    continue;
-                }
-
-                // **** skip circular references and primitives ****
-
-                if (node.IsFhirPrimitive)
-                {
-                    continue;
-                }
-
-                // **** output to our file ****
-
-                writer.Write(node.GetTypeScriptString());
-            }
-
-            //// **** close our module ****
-
-            //writer.Write($"}} // close module: {outputNamespace}\n");
-        }
-
-        ///-------------------------------------------------------------------------------------------------
-        /// <summary>Output C#.</summary>
-        ///
-        /// <remarks>Gino Canessa, 8/20/2019.</remarks>
-        ///
-        /// <param name="writer">         The writer.</param>
-        /// <param name="outputNamespace">The output namespace.</param>
-        /// <param name="typesToOutput">  The types to output.</param>
-        ///-------------------------------------------------------------------------------------------------
-
-        private void _OutputCSharp(StreamWriter writer, string outputNamespace, string typesToOutput)
-        {
-            // **** have not written any code systems ****
-
-            _writtenValueSets.Clear();
-
-            // **** write our header ****
-
-            writer.Write($"/** GENERATED FILE **/\n");
-            writer.Write($"/** Generated by: {Environment.UserName} at {DateTime.Now} **/\n");
-
-            if (!string.IsNullOrEmpty(typesToOutput))
-            {
-                writer.Write($"/** Restricted to types: {typesToOutput} **/\n");
-            }
-
-            writer.Write("using System;\nusing System.Collections.Generic;\n\n");
-
-            // **** start our namespace ****
-
-            writer.Write($"namespace {outputNamespace}\n{{\n");
+            // **** build a dictionary with types we need to replace out ****
 
             Dictionary<string, FhirBasicNode.LanguagePrimitiveType> languagePrimitiveDict = new Dictionary<string, FhirBasicNode.LanguagePrimitiveType>();
 
-            // **** first loop is to discover the primitive types ****
+            // **** build a primitive replacement dictionary if the language requires it ****
 
-            foreach (string primitiveName in _fhirPrimitives)
+            if (!lang.OutputBasicPrimitives)
             {
-                // **** grab our node ****
+                // **** first loop is to discover the primitive types ****
 
-                FhirType node = _fhirTypeDict[primitiveName];
-
-                // **** skip what we do not want ****
-
-                if (node.Properties.Count != 0)
+                foreach (string primitiveName in _fhirPrimitives)
                 {
-                    continue;
+                    // **** grab our node ****
+
+                    FhirType node = _fhirTypeDict[primitiveName];
+
+                    // **** skip what we do not want ****
+
+                    if (node.Properties.Count != 0)
+                    {
+                        continue;
+                    }
+
+                    // **** check for a language primitive ****
+
+                    if (node.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None)
+                    {
+                        // **** add to our lookup dictionary ****
+
+                        languagePrimitiveDict.Add(node.Name.Trim().ToLower(), node.LanguagePrimitive);
+
+                        // **** don't do anything else with this type ****
+
+                        continue;
+                    }
                 }
 
-                // **** check for a language primitive ****
+                // **** add any primitives we need to define (skip first (zero), number of types in FhirBasicNode.LanguagePrimitive) ****
 
-                if (node.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None)
+                for (int i = 1; i < 5; i++)
                 {
-                    // **** add to our lookup dictionary ****
+                    // **** check for not being the same ****
 
-                    languagePrimitiveDict.Add(node.Name.Trim().ToLower(), node.LanguagePrimitive);
-
-                    // **** don't do anything else with this type ****
-
-                    continue;
+                    if ((FhirBasicNode.JsonLanguagePrimitives[i] != lang.LanguageJsonTypes[i]) &&
+                        (!languagePrimitiveDict.ContainsKey(FhirBasicNode.JsonLanguagePrimitives[i])))
+                    {
+                        languagePrimitiveDict.Add(FhirBasicNode.JsonLanguagePrimitives[i], (FhirBasicNode.LanguagePrimitiveType)i);
+                    }
                 }
-            }
-
-            // **** force add any missing primitives we need to change ****
-
-            if (!languagePrimitiveDict.ContainsKey("number"))
-            {
-                languagePrimitiveDict.Add("number", FhirBasicNode.LanguagePrimitiveType.TypeNumber);
-            }
-
-            if (!languagePrimitiveDict.ContainsKey("datetime"))
-            {
-                languagePrimitiveDict.Add("datetime", FhirBasicNode.LanguagePrimitiveType.TypeDateTime);
             }
 
             // **** output the rest of our types ****
 
-            List<string> nodeNames = _fhirTypeDict.Keys.ToList<string>();
-            nodeNames.Sort();
+            List<string> fhirTypeNames = _fhirTypeDict.Keys.ToList<string>();
+            fhirTypeNames.Sort();
 
-            foreach (string nodeName in nodeNames)
+            foreach (string fhirTypeName in fhirTypeNames)
             {
                 // **** grab our node ****
 
-                FhirType node = _fhirTypeDict[nodeName];
+                FhirType fhirType = _fhirTypeDict[fhirTypeName];
 
-                if (node == null)
+                if (fhirType == null)
                 {
                     continue;
                 }
 
-                // **** skip circular references and primitives ****
+                //// **** always skip cicular primitives ****
 
-                if (node.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None)
-                { 
+                //if ((fhirType.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None) &&
+                //    (fhirType.IsCircular))
+                //{
+                //    continue;
+                //}
+
+                // **** skip other primitives if the language does not want them ****
+
+                if ((!lang.OutputBasicPrimitives) &&
+                    (fhirType.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None))
+                {
                     continue;
                 }
 
-                // **** output to our file ****
+                // **** make sure we don't self-define primitives ****
 
-                writer.Write(node.GetCSharpString(languagePrimitiveDict));
+                if ((lang.OutputBasicPrimitives) &&
+                    (fhirType.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None) &&
+                    (fhirType.IsCircular))
+                {
+                    continue;
+                }
+
+                // **** get our type open ****
+
+                lang.AppendFhirTypeOpen(ref typeSB, fhirType);
+
+                // **** get the name in all lower case for faster comparison ****
+
+                string nameLower = fhirType.Name.ToLower();
+
+                // **** output the properties of this type (alphebetically) ****
+
+                List<string> propertyNames = fhirType.Properties.Keys.ToList<string>();
+                propertyNames.Sort();
+
+                foreach (string propertyName in propertyNames)
+                {
+                    // **** get this property ****
+
+                    FhirProperty property = fhirType.Properties[propertyName];
+
+                    // **** skip fields with no type (are defined in base object) ****
+
+                    if (string.IsNullOrEmpty(property.TypeName))
+                    {
+                        continue;
+                    }
+
+                    // **** figure out this property's type name ****
+
+                    string typeName = property.TypeName.Trim().ToLower();
+
+                    // **** check for overriding the type name ****
+
+                    typeName = languagePrimitiveDict.ContainsKey(typeName)
+                        ? lang.LanguageJsonTypes[(int)languagePrimitiveDict[typeName]]
+                        : property.TypeName;
+
+                    // **** append this field's string ****
+
+                    lang.AppendFhirProperty(
+                        ref typeSB,
+                        property,
+                        typeName,
+                        propertyName.Equals(nameLower, StringComparison.Ordinal)
+                        );
+
+                    // **** check for having a code value list ****
+
+                    if ((!excludeCodes) && 
+                        (property.CodeValues != null) &&
+                        (property.CodeValues.Length > 0))
+                    {
+                        lang.AppendCodes(
+                                    ref enumSB,
+                                    property,
+                                    fhirType.NameCapitalized
+                                    );
+                    }
+
+                    // **** check for having a Value Set ****
+
+                    if (!string.IsNullOrEmpty(fhirType.Properties[propertyName].ValueSetUrl))
+                    {
+                        BuildValueSet(
+                            lang,
+                            ref valueSetSB,
+                            $"{fhirType.NameCapitalized}{property.NameCapitalized}",
+                            property.ValueSetUrl
+                            );
+                    }
+                }
+
+                // **** close our type ****
+
+                lang.AppendFhirTypeClose(ref typeSB, fhirType);
             }
+
+            // **** add all our pieces together ****
+
+            fileSB.Append(enumSB);
+            enumSB.Clear();
+
+            fileSB.Append(valueSetSB);
+            valueSetSB.Clear();
+
+            fileSB.Append(typeSB);
+            typeSB.Clear();
+
 
             // **** close our module ****
 
-            writer.Write($"}} // close namespace: {outputNamespace}\n");
+            lang.AppendModuleClose(ref fileSB, outputNamespace);
+
+            // **** get the footer ****
+
+            lang.AppendFileFooter(ref fileSB);
+
+            // **** write the file ****
+
+            writer.Write(fileSB.ToString());
+        }
+
+        private bool BuildValueSet(
+                                    ILanguangeExporter lang,
+                                    ref StringBuilder sb, 
+                                    string alias, 
+                                    string valueSetUrl
+                                    )
+        {
+            if ((string.IsNullOrEmpty(valueSetUrl)) ||
+                (!TryGetValueSet(valueSetUrl, out fhir.ValueSet valueSet)) ||
+                (!_urlValueSetConceptsDict.ContainsKey(valueSetUrl)) ||
+                (_urlValueSetConceptsDict[valueSetUrl].Length == 0))
+            {
+                return false;
+            }
+
+            // **** check for already exporting it ****
+
+            if (_writtenValueSetAliases.Contains(alias))
+            {
+                return true;
+            }
+
+            // **** grab our value set name and alias, sanitized ****
+
+            string sanitizedAlias = SanitizeForProperty(alias, lang.ReservedWords);
+            string sanitizedName = SanitizeForProperty(valueSet.Name, lang.ReservedWords);
+
+            // **** check for only needing to write the alias ****
+
+            if ((!_writtenValueSetAliases.Contains(alias)) &&
+                (_writtenValueSetNames.Contains(valueSet.Name)))
+                //(_writtenValueSetUrls.Contains(valueSetUrl)))
+            {
+                // **** add our alias ****
+
+                lang.AppendValueSetAlias(ref sb, sanitizedAlias, sanitizedName, valueSetUrl);
+
+                // **** add to written aliases ****
+
+                _writtenValueSetAliases.Add(alias);
+
+                // **** done ****
+
+                return true;
+            }
+
+            // **** get our open value set ****
+
+            lang.AppendValueSetOpen(ref sb, sanitizedAlias, sanitizedName, valueSet);
+
+            // **** traverse the expanded values ****
+
+            foreach (fhir.CodeSystemConcept concept in _urlValueSetConceptsDict[valueSetUrl])
+            {
+                string sanitizedCodeName = SanitizeForProperty(concept.Code, lang.ReservedWords);
+
+                // **** skip already exported ****
+
+                if (_writtenValueCodes.Contains(sanitizedCodeName))
+                {
+                    continue;
+                }
+
+                if (lang.AppendValueSetCodeConcept(
+                        ref sb, 
+                        sanitizedName,
+                        sanitizedCodeName, 
+                        concept, 
+                        _urlValueSetSystemDict[valueSetUrl]
+                        )
+                    )
+                {
+                    _writtenValueCodes.Add(sanitizedCodeName);
+                }
+            }
+
+            // **** close our value set **** 
+
+            lang.AppendValueSetClose(ref sb, sanitizedAlias, sanitizedName, valueSet);
+
+            // **** flag written ****
+
+            _writtenValueSetUrls.Add(valueSetUrl);
+            _writtenValueSetNames.Add(valueSet.Name);
+
+            // **** add our alias ****
+
+            lang.AppendValueSetAlias(ref sb, sanitizedAlias, sanitizedName, valueSetUrl);
+            _writtenValueSetAliases.Add(sanitizedName);
+
+            // **** return our string ****
+
+            return true;
         }
 
 

@@ -1,5 +1,6 @@
 ﻿using CommandLine;
 using fhir;
+using generate_fhir_prototype_bindings.Languages;
 using generate_fhir_prototype_bindings.Managers;
 using Newtonsoft.Json;
 using System;
@@ -745,6 +746,8 @@ namespace generate_fhir_prototype_bindings
 
         static void WriteCSharp(Options options)
         {
+            LanguageCSharp lang = new LanguageCSharp();
+
             string filename;
 
             // **** check for having an extension ****
@@ -755,7 +758,7 @@ namespace generate_fhir_prototype_bindings
             }
             else
             {
-                filename = $"{options.OutputFile}.cs";
+                filename = $"{options.OutputFile}.{((ILanguangeExporter)lang).SourceFileExtension}";
             }
 
             // **** ****
@@ -766,10 +769,18 @@ namespace generate_fhir_prototype_bindings
 
             using (StreamWriter writer = new StreamWriter(filename))
             {
+
                 // **** output our data ****
 
-                FhirTypeManager.OutputCSharp(writer, options.OutputNamespace, options.TypesToOutput);
+                FhirTypeManager.OutputForLang(
+                    writer,
+                    lang,
+                    options.TypesToOutput,
+                    options.OutputNamespace,
+                    options.ExcludeCodes
+                    );
             }
+
         }
 
         ///-------------------------------------------------------------------------------------------------
@@ -782,6 +793,8 @@ namespace generate_fhir_prototype_bindings
 
         static void WriteTypeScript(Options options)
         {
+            LanguageTypeScript lang = new LanguageTypeScript();
+
             string filename;
 
             // **** check for having an extension ****
@@ -792,7 +805,7 @@ namespace generate_fhir_prototype_bindings
             }
             else
             {
-                filename = $"{options.OutputFile}.ts";
+                filename = $"{options.OutputFile}.{((ILanguangeExporter)lang).SourceFileExtension}";
             }
 
             // **** ****
@@ -803,12 +816,14 @@ namespace generate_fhir_prototype_bindings
 
             using (StreamWriter writer = new StreamWriter(filename))
             {
+
                 // **** output our data ****
 
-                FhirTypeManager.OutputTypeScript(
-                    writer, 
-                    options.OutputNamespace, 
+                FhirTypeManager.OutputForLang(
+                    writer,
+                    lang,
                     options.TypesToOutput,
+                    options.OutputNamespace,
                     options.ExcludeCodes
                     );
             }

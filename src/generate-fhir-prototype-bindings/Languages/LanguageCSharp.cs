@@ -211,8 +211,8 @@ namespace generate_fhir_prototype_bindings.Languages
 
             if (IncludeNewtonsoftAnnotations)
             {
-                propertyAnnotation = $"\t\t[JsonProperty(PropertyName = \"{nameCamel}\")]\n";
-                extendedAnnotation = $"\t\t[JsonProperty(PropertyName = \"_{nameCamel}\")]\n";
+                propertyAnnotation = $"\t\t[JsonProperty(PropertyName = \"{property.Name}\")]\n";
+                extendedAnnotation = $"\t\t[JsonProperty(PropertyName = \"_{property.Name}\")]\n";
             }
 
             string comment = FhirTypeManager.SanitizeComment(property.Comment, _lineComment, _indentChar, 2);
@@ -301,10 +301,22 @@ namespace generate_fhir_prototype_bindings.Languages
 
             if (FhirTypeManager.DoesTypeRequireResourceTag(fhirType.Name))
             {
-                sb.Append(
-                    $"\t\t///<summary>Resource Type Name (for serialization)</summary>\n" +
-                    $"\t\tpublic string ResourceType => \"{fhirType.Name}\";\n"
-                    );
+
+                if (IncludeNewtonsoftAnnotations)
+                {
+                    sb.Append(
+                        $"\t\t///<summary>Resource Type Name (for serialization)</summary>\n" +
+                        $"\t\t[JsonProperty(PropertyName = resourceType)]\n" +
+                        $"\t\tpublic string ResourceType => \"{fhirType.Name}\";\n"
+                        );
+                }
+                else
+                {
+                    sb.Append(
+                        $"\t\t///<summary>Resource Type Name (for serialization)</summary>\n" +
+                        $"\t\tpublic string ResourceType => \"{fhirType.Name}\";\n"
+                        );
+                }
             }
 
             return true;

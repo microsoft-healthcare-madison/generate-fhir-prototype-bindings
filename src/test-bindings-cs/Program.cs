@@ -4,6 +4,7 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
 
@@ -37,6 +38,10 @@ namespace test_bindings_cs
 
                 foreach (ZipArchiveEntry entry in zip.Entries)
                 {
+                    //if (entry.Name != "account.profile.json")
+                    //{
+                    //    continue;
+                    //}
 
                     status = TestSourceParsing(entry);
 
@@ -95,7 +100,6 @@ namespace test_bindings_cs
 
                 return new fhir.Resource();
             }
-
         }
 
         public abstract class JsonCreationConverter<T> : JsonConverter
@@ -174,7 +178,7 @@ namespace test_bindings_cs
 
             //T typed = JsonConvert.DeserializeObject<T>(source);
             //dynamic typed = JsonConvert.DeserializeObject(source, resourceType);
-            dynamic typed = JsonConvert.DeserializeObject(source, resourceType, new ResourceConverter());
+            dynamic typed = JsonConvert.DeserializeObject(source, resourceType, new JsonConverter[] { new ResourceConverter() });
 
             // **** re-serialize ****
 
@@ -185,7 +189,9 @@ namespace test_bindings_cs
                 {
                     NullValueHandling = NullValueHandling.Ignore,
                     ContractResolver = _contractResolver,
-
+                    DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                    DateParseHandling = DateParseHandling.None,
+                    DateTimeZoneHandling = DateTimeZoneHandling.Utc,
                 });
 
             string serializedTyped = JsonConvert.SerializeObject(
@@ -195,6 +201,9 @@ namespace test_bindings_cs
                 {
                     NullValueHandling = NullValueHandling.Ignore,
                     ContractResolver = _contractResolver,
+                    DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                    DateParseHandling = DateParseHandling.None,
+                    DateTimeZoneHandling = DateTimeZoneHandling.Utc,
                 });
 
             // **** split on lines ****
@@ -267,10 +276,9 @@ namespace test_bindings_cs
                     // **** check for a different Date/Time format (e.g., time zone) ****
 
                     if ((TryGetDateTime(parsedLines[parsedIndex], out DateTime parsedTime)) &&
-                        (TryGetDateTime(typedLines[typedIndex], out DateTime typedTime)) &&
-                        (parsedTime.ToUniversalTime().Equals(typedTime.ToUniversalTime())))
+                        (TryGetDateTime(typedLines[typedIndex], out DateTime typedTime)))
                     {
-                        Console.WriteLine($"INFO: {entry.Name}: TimeZone conversion occured: from {parsedLines[parsedIndex]} to {typedLines[typedIndex]}");
+                        Console.WriteLine($"INFO: {entry.Name}: TimeZone coersion: from {parsedLines[parsedIndex]} to {typedLines[typedIndex]}");
                         continue;
                     }
 

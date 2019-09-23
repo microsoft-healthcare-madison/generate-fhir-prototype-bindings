@@ -379,6 +379,8 @@ namespace generate_fhir_prototype_bindings
                         valueSet = element.Binding.ValueSet;
                     }
 
+                    string cardinality = element.Type.Length > 1 ? "0..1" : $"{element.Min}..{element.Max}";
+
                     // **** traverse the types for this element ****
 
                     foreach (ElementDefinitionType defType in element.Type)
@@ -422,7 +424,7 @@ namespace generate_fhir_prototype_bindings
                             elementName,
                             defType.Code,
                             element.Definition,
-                            $"{element.Min}..{element.Max}",
+                            cardinality,
                             false,
                             filename,
                             valueSet: valueSet

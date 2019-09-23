@@ -122,9 +122,18 @@ namespace generate_fhir_prototype_bindings.Models
         /// <returns>The language primitive.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        internal static LanguagePrimitiveType GetLanguagePrimitive(string typeName)
+        internal static LanguagePrimitiveType GetLanguagePrimitive(string name, string typeName)
         {
+            name = name.Trim().ToLower();
             typeName = typeName.Trim().ToLower();
+
+            if ((name.Equals("datetime", StringComparison.Ordinal)) ||
+                (name.Equals("instant", StringComparison.Ordinal)) ||
+                (typeName.Equals("datetime", StringComparison.Ordinal)) ||
+                (typeName.Equals("instant", StringComparison.Ordinal)))
+            {
+                return LanguagePrimitiveType.TypeDateTime;
+            }
 
             if (typeName.Equals("string", StringComparison.Ordinal))
             {
@@ -139,11 +148,6 @@ namespace generate_fhir_prototype_bindings.Models
             if (typeName.Equals("boolean", StringComparison.Ordinal))
             {
                 return LanguagePrimitiveType.TypeBoolean;
-            }
-
-            if (typeName.Equals("datetime", StringComparison.Ordinal))
-            {
-                return LanguagePrimitiveType.TypeDateTime;
             }
 
             return LanguagePrimitiveType.None;

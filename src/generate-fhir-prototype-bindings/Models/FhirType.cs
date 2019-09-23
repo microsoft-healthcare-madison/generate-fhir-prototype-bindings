@@ -124,7 +124,7 @@ namespace generate_fhir_prototype_bindings.Models
                 SourceFilename = sourceFilename,
                 Properties = new Dictionary<string, FhirProperty>(),
                 IsFhirPrimitive = isFhirPrimitive,
-                LanguagePrimitive = GetLanguagePrimitive(typeName)
+                LanguagePrimitive = GetLanguagePrimitive(name, typeName)
             };
 
             return node;

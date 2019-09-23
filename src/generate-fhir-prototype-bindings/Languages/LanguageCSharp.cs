@@ -28,7 +28,7 @@ namespace generate_fhir_prototype_bindings.Languages
             "string",
             "decimal",
             "bool",
-            "DateTime"
+            "string",           // Cannot use "DateTime" because of Partial Dates... may want to consider defining a new type, but not today
         };
 
         /// <summary>Set of all language reserved words</summary>
@@ -225,7 +225,8 @@ namespace generate_fhir_prototype_bindings.Languages
             {
                 case "bool":
                 case "decimal":
-                    // **** ignore - use current style ****
+                case "DateTime":
+                    // **** ignore - types can be optional ****
                 break;
                 default:
                     optionalFlagString = "";
@@ -306,7 +307,7 @@ namespace generate_fhir_prototype_bindings.Languages
                 {
                     sb.Append(
                         $"\t\t///<summary>Resource Type Name (for serialization)</summary>\n" +
-                        $"\t\t[JsonProperty(PropertyName = resourceType)]\n" +
+                        $"\t\t[JsonProperty(PropertyName = \"resourceType\")]\n" +
                         $"\t\tpublic string ResourceType => \"{fhirType.Name}\";\n"
                         );
                 }

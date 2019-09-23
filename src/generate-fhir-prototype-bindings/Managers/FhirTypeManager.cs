@@ -1419,6 +1419,8 @@ namespace generate_fhir_prototype_bindings.Managers
                                                 FhirType fhirType
                                                 )
         {
+            const string optionalCardinality = "0..1";
+
             // **** parse out the array indicator ****
 
             string baseName = name.Replace("[x]", "");
@@ -1443,7 +1445,7 @@ namespace generate_fhir_prototype_bindings.Managers
                         fullName,
                         primitive.TypeName,
                         comment,
-                        cardinality
+                        optionalCardinality
                         );
 
                     // **** add this property to our type ****
@@ -1459,6 +1461,11 @@ namespace generate_fhir_prototype_bindings.Managers
                 // **** parse the type list ****
 
                 string[] subtypes = baseType.Split('|');
+
+                if (subtypes.Length > 1)
+                {
+                    cardinality = optionalCardinality;
+                }
 
                 foreach (string subtype in subtypes)
                 {

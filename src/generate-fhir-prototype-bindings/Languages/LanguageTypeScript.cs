@@ -28,7 +28,7 @@ namespace generate_fhir_prototype_bindings.Languages
             "string",
             "number",
             "boolean",
-            "datetime"
+            "string",           // use string instead of date/time for JavaScript "datetime"?
         };
 
         /// <summary>Set of all language reserved words</summary>

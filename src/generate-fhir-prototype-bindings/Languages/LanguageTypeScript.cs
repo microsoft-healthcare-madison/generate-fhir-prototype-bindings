@@ -39,7 +39,7 @@ namespace generate_fhir_prototype_bindings.Languages
         #region Instance Variables . . .
 
         private StringBuilder _valueSetExportSB;
-        private StringBuilder _valueSetInterfaceSB;
+        //private StringBuilder _valueSetInterfaceSB;
         
         #endregion Instance Variables . . .
 
@@ -57,7 +57,7 @@ namespace generate_fhir_prototype_bindings.Languages
                 "type"
             };
             _valueSetExportSB = new StringBuilder();
-            _valueSetInterfaceSB = new StringBuilder();
+            //_valueSetInterfaceSB = new StringBuilder();
         }
 
         #endregion Constructors . . .
@@ -258,7 +258,7 @@ namespace generate_fhir_prototype_bindings.Languages
         {
             // **** clear our related objects for the value set ****
 
-            _valueSetInterfaceSB.Clear();
+            //_valueSetInterfaceSB.Clear();
             _valueSetExportSB.Clear();
 
             string comment;
@@ -282,13 +282,14 @@ namespace generate_fhir_prototype_bindings.Languages
 
             // **** add our comment ****
 
-            _valueSetInterfaceSB.Append(comment);
+            //_valueSetInterfaceSB.Append(comment);
             _valueSetExportSB.Append(comment);
 
             // **** open our value set (interface has to be before export) ****
 
-            _valueSetInterfaceSB.Append($"interface {sanitizedName}_Interface {{\n");
-            _valueSetExportSB.Append($"export const {sanitizedName}: {sanitizedName}_Interface = {{\n");
+            //_valueSetInterfaceSB.Append($"interface {sanitizedName}_Interface {{\n");
+            //_valueSetExportSB.Append($"export const {sanitizedName}: {sanitizedName}_Interface = {{\n");
+            _valueSetExportSB.Append($"export const {sanitizedName} = {{\n");
 
             return true;
         }
@@ -331,11 +332,12 @@ namespace generate_fhir_prototype_bindings.Languages
 
             // **** add this code to our interface ****
 
-            _valueSetInterfaceSB.Append($"\t/**\n\t * {comment}\n\t */\n");
-            _valueSetInterfaceSB.Append($"\t{sanitizedCodeName}: Coding,\n");
+            //_valueSetInterfaceSB.Append($"\t/**\n\t * {comment}\n\t */\n");
+            //_valueSetInterfaceSB.Append($"\t{sanitizedCodeName}: Coding,\n");
 
             // **** add this code to our export ****
 
+            _valueSetExportSB.Append($"\t/**\n\t * {comment}\n\t */\n");
             _valueSetExportSB.Append($"\t{sanitizedCodeName}: {sanitizedValueSetName}_{sanitizedCodeName},\n");
 
             return true;
@@ -343,13 +345,13 @@ namespace generate_fhir_prototype_bindings.Languages
 
         bool ILanguangeExporter.AppendValueSetClose(ref StringBuilder sb, string sanitizedAlias, string sanitizedName, ValueSet valueSet)
         {
-            _valueSetInterfaceSB.Append("};\n");
+            //_valueSetInterfaceSB.Append("};\n");
             _valueSetExportSB.Append("}\n");
 
             // **** add our related objects to the normal string now ****
 
-            sb.Append(_valueSetInterfaceSB);
-            _valueSetInterfaceSB.Clear();
+            //sb.Append(_valueSetInterfaceSB);
+            //_valueSetInterfaceSB.Clear();
 
             sb.Append(_valueSetExportSB);
             _valueSetExportSB.Clear();

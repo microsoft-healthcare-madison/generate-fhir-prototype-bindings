@@ -632,7 +632,18 @@ namespace generate_fhir_prototype_bindings
 
             foreach (fhir.ElementDefinitionType type in def.Type)
             {
-                // **** check for the json type ****
+                if ((type.Extension != null) && (type.Extension.Length > 0))
+                {
+                    foreach (fhir.Extension ext in type.Extension)
+                    {
+                        if (ext.Url.EndsWith("fhir-type"))
+                        {
+                            return ext.ValueUri;
+                        }
+                    }
+                }
+
+                // **** check for the json extension on the coding ****
 
                 if ((type._Code != null) && (type._Code.Extension != null) && (type._Code.Extension.Length > 0))
                 {
@@ -648,6 +659,7 @@ namespace generate_fhir_prototype_bindings
                         }
                     }
                 }
+
             }
 
             // **** all else fails, default to string ****

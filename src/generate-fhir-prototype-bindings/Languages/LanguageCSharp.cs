@@ -22,13 +22,28 @@ namespace generate_fhir_prototype_bindings.Languages
 
         #region Class Variables . . .
 
-        /// <summary>The language primitive type names for C# (see FhirBasicNode.LanguagePrimitiveType for order).</summary>
-        private static string[] _equivalentJsonTypes = {
-            "",
-            "string",
-            "decimal",
-            "bool",
-            "string",           // Cannot use "DateTime" because of Partial Dates... may want to consider defining a new type, but not today
+        private static Dictionary<string, string> _fhirLanguageTypeMap = new Dictionary<string, string>()
+        {
+            { "instant", "string" },
+            { "time", "string" },
+            { "date", "string" },
+            { "dateTime", "string" }, // Cannot use "DateTime" because of Partial Dates... may want to consider defining a new type, but not today
+            { "boolean", "bool" },
+            { "decimal", "decimal" },
+            { "integer", "int" },
+            { "unsignedInt", "uint" },
+            { "positiveInt", "uint" },
+            { "base64Binary", "string" },
+            { "url", "string" },
+            { "uri", "string" },
+            { "code", "string" },
+            { "string", "string" },
+            { "canonical", "string" },
+            { "markdown", "string" },
+            { "id", "string" },
+            { "oid", "string" },
+            { "xhtml", "string" },
+            { "uuid", "Guid" },
         };
 
         /// <summary>Set of all language reserved words</summary>
@@ -134,7 +149,7 @@ namespace generate_fhir_prototype_bindings.Languages
 
         #region Interface:ILanguageExporter . . .
 
-        string[] ILanguangeExporter.LanguageJsonTypes => _equivalentJsonTypes;
+        Dictionary<string, string> ILanguangeExporter.FhirLanguageTypeMap => _fhirLanguageTypeMap;
 
         HashSet<string> ILanguangeExporter.ReservedWords => _reservedWordsSet;
 
@@ -302,7 +317,6 @@ namespace generate_fhir_prototype_bindings.Languages
 
             if (FhirTypeManager.DoesTypeRequireResourceTag(fhirType.Name))
             {
-
                 if (IncludeNewtonsoftAnnotations)
                 {
                     sb.Append(

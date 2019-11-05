@@ -1536,54 +1536,54 @@ namespace generate_fhir_prototype_bindings.Managers
 
             // **** build a dictionary with types we need to replace out ****
 
-            Dictionary<string, FhirBasicNode.LanguagePrimitiveType> languagePrimitiveDict = new Dictionary<string, FhirBasicNode.LanguagePrimitiveType>();
+            //Dictionary<string, FhirBasicNode.LanguagePrimitiveType> languagePrimitiveDict = new Dictionary<string, FhirBasicNode.LanguagePrimitiveType>();
 
-            // **** build a primitive replacement dictionary if the language requires it ****
+            //// **** build a primitive replacement dictionary if the language requires it ****
 
-            if (!lang.OutputBasicPrimitives)
-            {
-                // **** first loop is to discover the primitive types ****
+            //if (!lang.OutputBasicPrimitives)
+            //{
+            //    // **** first loop is to discover the primitive types ****
 
-                foreach (string primitiveName in _fhirPrimitives)
-                {
-                    // **** grab our node ****
+            //    foreach (string primitiveName in _fhirPrimitives)
+            //    {
+            //        // **** grab our node ****
 
-                    FhirType node = _fhirTypeDict[primitiveName];
+            //        FhirType node = _fhirTypeDict[primitiveName];
 
-                    // **** skip what we do not want ****
+            //        // **** skip what we do not want ****
 
-                    if (node.Properties.Count != 0)
-                    {
-                        continue;
-                    }
+            //        if (node.Properties.Count != 0)
+            //        {
+            //            continue;
+            //        }
 
-                    // **** check for a language primitive ****
+            //        // **** check for a language primitive ****
 
-                    if (node.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None)
-                    {
-                        // **** add to our lookup dictionary ****
+            //        if (node.LanguagePrimitiveIndex != FhirBasicNode.LanguagePrimitiveType.None)
+            //        {
+            //            // **** add to our lookup dictionary ****
 
-                        languagePrimitiveDict.Add(node.Name.Trim().ToLower(), node.LanguagePrimitive);
+            //            languagePrimitiveDict.Add(node.Name.Trim().ToLower(), node.LanguagePrimitiveIndex);
 
-                        // **** don't do anything else with this type ****
+            //            // **** don't do anything else with this type ****
 
-                        continue;
-                    }
-                }
+            //            continue;
+            //        }
+            //    }
 
-                // **** add any primitives we need to define (skip first (zero), number of types in FhirBasicNode.LanguagePrimitive) ****
+            //    // **** add any primitives we need to define (skip first (zero), number of types in FhirBasicNode.LanguagePrimitive) ****
 
-                for (int i = 1; i < 5; i++)
-                {
-                    // **** check for not being the same ****
+            //    for (int i = 1; i < 5; i++)
+            //    {
+            //        // **** check for not being the same ****
 
-                    if ((FhirBasicNode.JsonLanguagePrimitives[i] != lang.LanguageJsonTypes[i]) &&
-                        (!languagePrimitiveDict.ContainsKey(FhirBasicNode.JsonLanguagePrimitives[i])))
-                    {
-                        languagePrimitiveDict.Add(FhirBasicNode.JsonLanguagePrimitives[i], (FhirBasicNode.LanguagePrimitiveType)i);
-                    }
-                }
-            }
+            //        if ((FhirBasicNode.JsonLanguagePrimitives[i] != lang.LanguageJsonTypes[i]) &&
+            //            (!languagePrimitiveDict.ContainsKey(FhirBasicNode.JsonLanguagePrimitives[i])))
+            //        {
+            //            languagePrimitiveDict.Add(FhirBasicNode.JsonLanguagePrimitives[i], (FhirBasicNode.LanguagePrimitiveType)i);
+            //        }
+            //    }
+            //}
 
             // **** output the rest of our types ****
 
@@ -1612,7 +1612,7 @@ namespace generate_fhir_prototype_bindings.Managers
                 // **** skip other primitives if the language does not want them ****
 
                 if ((!lang.OutputBasicPrimitives) &&
-                    (fhirType.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None))
+                    (lang.FhirLanguageTypeMap.ContainsKey(fhirType.TypeName)))
                 {
                     continue;
                 }
@@ -1620,7 +1620,7 @@ namespace generate_fhir_prototype_bindings.Managers
                 // **** make sure we don't self-define primitives ****
 
                 if ((lang.OutputBasicPrimitives) &&
-                    (fhirType.LanguagePrimitive != FhirBasicNode.LanguagePrimitiveType.None) &&
+                    (lang.FhirLanguageTypeMap.ContainsKey(fhirType.TypeName)) &&
                     (fhirType.IsCircular))
                 {
                     continue;
@@ -1652,22 +1652,23 @@ namespace generate_fhir_prototype_bindings.Managers
                         continue;
                     }
 
-                    // **** figure out this property's type name ****
+                    // **** grab this type ****
 
-                    string typeName = property.TypeName.Trim().ToLower();
+                    string propertyType = property.TypeName;
 
-                    // **** check for overriding the type name ****
+                    // **** determine the type we are using in output ****
 
-                    typeName = languagePrimitiveDict.ContainsKey(typeName)
-                        ? lang.LanguageJsonTypes[(int)languagePrimitiveDict[typeName]]
-                        : property.TypeName;
+                    if (lang.FhirLanguageTypeMap.ContainsKey(propertyType))
+                    {
+                        propertyType = lang.FhirLanguageTypeMap[propertyType];
+                    }
 
                     // **** append this field's string ****
 
                     lang.AppendFhirProperty(
                         ref typeSB,
                         property,
-                        typeName,
+                        propertyType,
                         propertyName.Equals(nameLower, StringComparison.Ordinal)
                         );
 

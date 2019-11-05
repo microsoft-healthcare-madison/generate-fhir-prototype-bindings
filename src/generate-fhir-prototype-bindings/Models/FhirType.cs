@@ -68,7 +68,7 @@ namespace generate_fhir_prototype_bindings.Models
         /// <value>The language primitive.</value>
         ///-------------------------------------------------------------------------------------------------
 
-        public LanguagePrimitiveType LanguagePrimitive { get; set; }
+        //public int LanguagePrimitiveIndex { get; set; }
 
         #endregion Instance Variables . . .
 
@@ -119,12 +119,12 @@ namespace generate_fhir_prototype_bindings.Models
                 Name = name,
                 NameCapitalized = string.Concat(name.Substring(0, 1).ToUpper(), name.Substring(1)),
                 Comment = comment,
-                TypeName = typeName,
+                TypeName = typeName.Trim(),
                 IsCircular = (name.Equals(typeName, StringComparison.OrdinalIgnoreCase)) ? true : false,
                 SourceFilename = sourceFilename,
                 Properties = new Dictionary<string, FhirProperty>(),
                 IsFhirPrimitive = isFhirPrimitive,
-                LanguagePrimitive = GetLanguagePrimitive(name, typeName)
+                //LanguagePrimitiveIndex = GetLanguagePrimitiveIndex(name, typeName)
             };
 
             return node;

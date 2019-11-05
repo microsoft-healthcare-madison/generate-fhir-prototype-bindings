@@ -121,7 +121,7 @@ namespace generate_fhir_prototype_bindings.Models
 
             // **** remove any spaces ****
 
-            typeName = typeName.Replace(" ", "");
+            typeName = typeName.Replace(" ", "").Trim();
 
             // **** create our field ****
 
@@ -200,7 +200,7 @@ namespace generate_fhir_prototype_bindings.Models
 
             // **** remove any spaces ****
 
-            typeName = typeName.Replace(" ", "");
+            typeName = typeName.Replace(" ", "").Trim();
 
             // **** create our field ****
 

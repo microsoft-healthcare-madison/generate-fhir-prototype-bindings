@@ -22,13 +22,28 @@ namespace generate_fhir_prototype_bindings.Languages
 
         #region Class Variables . . .
 
-        /// <summary>The language primitive type names for C# (see FhirBasicNode.LanguagePrimitiveType for order).</summary>
-        private static string[] _equivalentJsonTypes = {
-            "",
-            "string",
-            "number",
-            "boolean",
-            "string",           // use string instead of date/time for JavaScript "datetime"?
+        private static Dictionary<string, string> _fhirLanguageTypeMap = new Dictionary<string, string>()
+        {
+            { "instant", "string" },
+            { "time", "string" },
+            { "date", "string" },
+            { "dateTime", "string" },
+            { "boolean", "boolean" },
+            { "decimal", "number" },
+            { "integer", "number" },
+            { "unsignedInt", "number" },
+            { "positiveInt", "number" },
+            { "base64Binary", "string" },
+            { "url", "string" },
+            { "uri", "string" },
+            { "code", "string" },
+            { "string", "string" },
+            { "canonical", "string" },
+            { "markdown", "string" },
+            { "id", "string" },
+            { "oid", "string" },
+            { "xhtml", "string" },
+            { "uuid", "string" },
         };
 
         /// <summary>Set of all language reserved words</summary>
@@ -63,7 +78,8 @@ namespace generate_fhir_prototype_bindings.Languages
         #endregion Constructors . . .
 
         #region Interface:ILanguageExporter . . .
-        string[] ILanguangeExporter.LanguageJsonTypes => _equivalentJsonTypes;
+
+        Dictionary<string, string> ILanguangeExporter.FhirLanguageTypeMap => _fhirLanguageTypeMap;
 
         HashSet<string> ILanguangeExporter.ReservedWords => _reservedWordsSet;
 

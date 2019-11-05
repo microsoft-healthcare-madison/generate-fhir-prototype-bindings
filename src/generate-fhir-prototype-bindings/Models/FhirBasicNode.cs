@@ -23,28 +23,52 @@ namespace generate_fhir_prototype_bindings.Models
         public enum LanguagePrimitiveType : int
         {
             None,
-            TypeString,
-            TypeNumber,
+            TypeDateTime,
             TypeBoolean,
-            TypeDateTime
+            TypeNumber,
+            TypeString,
         }
 
-        public static string[] JsonLanguagePrimitives = {
-            "",
-            "string",
-            "number",
+        public const int FhirPrimitiveCount = 20;
+
+        public static string[] FhirPrimitives = {
+
+            "instant",
+            "time",
+            "date",
+            "dateTime",
+
             "boolean",
-            "datetime"
+            
+            "decimal",
+            "integer",
+            "unsignedInt",
+            "positiveInt",
+            
+            "base64Binary",
+            "url",
+            "code",
+            "string",
+            "uri",
+            "canonical",
+            "markdown",
+            "id",
+            "oid",
+            "xhtml",
+
+            "uuid",
         };
 
-        /// <summary>The language primitive type names for C#.</summary>
-        public static string[] LanguagePrimitiveTypeNamesCS = {
-            "",
-            "string",
-            "decimal",
-            "bool",
-            "DateTime"
-        };
+        //public static string[] JsonLanguagePrimitives = {
+        //    "",
+        //    "string",
+        //    "number",
+        //    "boolean",
+        //    "datetime",
+        //    "number",
+        //    "number",
+        //    "number",
+        //};
 
         #endregion Class Enums . . .
 
@@ -122,35 +146,21 @@ namespace generate_fhir_prototype_bindings.Models
         /// <returns>The language primitive.</returns>
         ///-------------------------------------------------------------------------------------------------
 
-        internal static LanguagePrimitiveType GetLanguagePrimitive(string name, string typeName)
+        internal static int GetLanguagePrimitiveIndex(string name, string typeName)
         {
             name = name.Trim().ToLower();
             typeName = typeName.Trim().ToLower();
 
-            if ((name.Equals("datetime", StringComparison.Ordinal)) ||
-                (name.Equals("instant", StringComparison.Ordinal)) ||
-                (typeName.Equals("datetime", StringComparison.Ordinal)) ||
-                (typeName.Equals("instant", StringComparison.Ordinal)))
+            for (int index = 0; index < FhirPrimitiveCount; index++)
             {
-                return LanguagePrimitiveType.TypeDateTime;
+                if ((name.Equals(FhirPrimitives[index], StringComparison.Ordinal)) ||
+                    (typeName.Equals(FhirPrimitives[index], StringComparison.Ordinal)))
+                {
+                    return index;
+                }
             }
 
-            if (typeName.Equals("string", StringComparison.Ordinal))
-            {
-                return LanguagePrimitiveType.TypeString;
-            }
-
-            if (typeName.Equals("number", StringComparison.Ordinal))
-            {
-                return LanguagePrimitiveType.TypeNumber;
-            }
-
-            if (typeName.Equals("boolean", StringComparison.Ordinal))
-            {
-                return LanguagePrimitiveType.TypeBoolean;
-            }
-
-            return LanguagePrimitiveType.None;
+            return -1;
         }
 
 

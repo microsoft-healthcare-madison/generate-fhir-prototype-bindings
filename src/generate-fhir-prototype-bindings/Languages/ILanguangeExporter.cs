@@ -8,7 +8,8 @@ namespace generate_fhir_prototype_bindings.Languages
 {
     public interface ILanguangeExporter
     {
-        string[] LanguageJsonTypes
+
+        Dictionary<string, string> FhirLanguageTypeMap
         {
             get;
         }

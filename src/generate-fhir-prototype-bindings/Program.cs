@@ -385,19 +385,37 @@ namespace generate_fhir_prototype_bindings
 
                     foreach (ElementDefinitionType defType in element.Type)
                     {
+                        string typeCode = defType.Code;
+
+                        // **** check for the FHIR Type extension ****
+
+                        if ((defType.Extension != null) &&
+                            (defType.Extension.Length > 0))
+                        {
+                            foreach (Extension ext in defType.Extension)
+                            {
+                                if (ext.Url.Equals(
+                                    "http://hl7.org/fhir/StructureDefinition/structuredefinition-fhir-type", 
+                                    StringComparison.Ordinal))
+                                {
+                                    typeCode = ext.ValueUri;
+                                }
+                            }
+                        }
+
                         // **** remove array info from name (if necessary) ****
 
                         string elementName = element.Path.Replace(
                             "[x]",
                             string.Concat(
-                                defType.Code.Substring(0, 1).ToUpper(),
-                                defType.Code.Substring(1)
+                                typeCode.Substring(0, 1).ToUpper(),
+                                typeCode.Substring(1)
                                 )
                             );
 
                         // **** check for a code type ****
 
-                        if (defType.Code == "code")
+                        if (typeCode == "code")
                         {
                             string[] codeValues = element.Short.Split('|');
 
@@ -405,7 +423,7 @@ namespace generate_fhir_prototype_bindings
 
                             FhirTypeManager.ProcessSpreadsheetDataElement(
                                 elementName,
-                                defType.Code,
+                                typeCode,
                                 (element.Comment == null) ? element.Definition : element.Comment,
                                 $"{element.Min}..{element.Max}",
                                 false,
@@ -422,7 +440,7 @@ namespace generate_fhir_prototype_bindings
 
                         FhirTypeManager.ProcessSpreadsheetDataElement(
                             elementName,
-                            defType.Code,
+                            typeCode,
                             element.Definition,
                             cardinality,
                             false,

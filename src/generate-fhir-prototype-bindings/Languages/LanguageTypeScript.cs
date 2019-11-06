@@ -64,12 +64,10 @@ namespace generate_fhir_prototype_bindings.Languages
         {
             _reservedWordsSet = new HashSet<string>()
             {
-                "class",
                 "const",
                 "enum",
                 "export",
-                "interface",
-                "type"
+                "interface"
             };
             _valueSetExportSB = new StringBuilder();
             //_valueSetInterfaceSB = new StringBuilder();

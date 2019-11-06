@@ -398,7 +398,7 @@ namespace generate_fhir_prototype_bindings
                                     "http://hl7.org/fhir/StructureDefinition/structuredefinition-fhir-type", 
                                     StringComparison.Ordinal))
                                 {
-                                    typeCode = ext.ValueUri;
+                                    typeCode = ext.ValueUrl ?? ext.ValueUri;
                                 }
                             }
                         }
@@ -448,6 +448,35 @@ namespace generate_fhir_prototype_bindings
                             valueSet: valueSet
                             );
                     }
+                }
+
+                // **** check for extension type information ****
+
+                else if ((element.Type != null) && (element.Type.Length > 0) && (element.Type[0].Extension != null))
+                {
+                    // **** find the json type ****
+
+                    string propertyType = "";
+
+                    foreach (Extension ext in element.Type[0].Extension)
+                    {
+                        if (ext.Url.EndsWith("fhir-type"))
+                        {
+                            propertyType = ext.ValueUrl ?? ext.ValueUri;
+                            break;
+                        }
+                    }
+
+                    // **** process this field ****
+
+                    FhirTypeManager.ProcessSpreadsheetDataElement(
+                        element.Path,
+                        propertyType,
+                        element.Definition,
+                        $"{element.Min}..{element.Max}",
+                        false,
+                        filename
+                        );
                 }
 
                 // **** check for extension type information ****
@@ -638,7 +667,7 @@ namespace generate_fhir_prototype_bindings
                     {
                         if (ext.Url.EndsWith("fhir-type"))
                         {
-                            return ext.ValueUri;
+                            return ext.ValueUrl ?? ext.ValueUri;
                         }
                     }
                 }

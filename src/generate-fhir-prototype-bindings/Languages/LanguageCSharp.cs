@@ -241,6 +241,10 @@ namespace generate_fhir_prototype_bindings.Languages
                 case "bool":
                 case "decimal":
                 case "DateTime":
+                case "int":
+                case "uint":
+                case "Guid":
+
                     // **** ignore - types can be optional ****
                 break;
                 default:

@@ -1,28 +1,35 @@
 # generate-fhir-prototype-bindings
 
-A .Net Core utility to generate language bindings from FHIR sources for use in prototyping changes to FHIR resources.
+A .Net Core utility to generate language bindings from FHIR sources for use in prototyping FHIR resources and small projects.
 
+Currently supports serialziation to/from 'fhir+json' only.
 
 # Usage
 
 
 ```
+Input Options:
   -i, --fhir-directory    Required. FHIR Base Directory
+  --only-structure-defs   (Default: true) Set to use only Structure Definitions (<FHIR Base>/publish/)
+  --only-xml-sheets       (Default: false) Set to use only XML Definition Spreadsheets (<FHIR Base>/source/)
+  --types-for-xml-sheets  (Default: '') '|' separated list of resources to parse from XML Spreadsheets
 
+Output Options:
   -o, --output-path       Required. Path or filename for output (will append appropriate extension if not provided)
-
   --output-single         (Default: true) Set to output a single file
+  --types-to-output       (Default: '') '|' separated list of resources/types to export (will include all required parent/component types).
+  --namespace             (Default: 'fhir') The Exported namespace or module name
+  --exclude-code-systems  (Default: false) Set to exclude processing of Code Systems (as constants / enums)
+  --exclude-value-sets    (Default: false) Set to exclude processing of Value Sets (as constants / enums)
 
+Language Options:
   --ts                    (Default: false) Generate TypeScript bindings
+  --cs                    (Default: false) Generate C# bindings, with annotations for System.Text.Json (.Net Core)
+  --cs-plain              (Default: false) Generate C# bindings, with NO annotations (Raw C#)
+  --cs-newtonsoft         (Default: false) Generate C# bindings, with annotations for Newtonsoft.Json
 
-  --cs                    (Default: false) Generate C# bindings
-
-  --types-to-output       (Default: ) '|' Separated list of resources/profiles/types to export (will include all necessary types below). E.g., Topic|Subscription
-
-  --namespace             (Default: fhir) The Exported namespace or module name
-
+General Options:
   --help                  Display this help screen.
-
   --version               Display version information.
 ```
 
@@ -34,11 +41,16 @@ dotnet generate-fhir-prototype-bindings.dll -i /path/to/fhir -o /path/to/output.
 
 ## To Do:
 
-- Allow filtering on structure types (e.g., logical).
-- Parse FHIR structure definitions.
-- Specify specific XMLs to parse (to replace content from structure definitions).
-- Output multiple files.
-- Add additional language support (Java).
+- Allow filtering on structure types (e.g., logical)
+- Output multiple files
+- Additional language support (Java, Swagger)
+- Runtime Type Checking for TypeScript
+- Better processing for external Code Systems
+- Allow Value Sets to pull from multiple Code Systems
+- Read Structure Definitions from URL (allow running without local FHIR files)
+- C# Polymorphic Deserialization
+- Explore XML serialization options
+- Explore exporting from Profiles (e.g., additional constraints and specific models only)
 
 
 ## Contributing

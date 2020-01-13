@@ -31,6 +31,7 @@ namespace generate_fhir_prototype_bindings.Languages
             { "boolean", "boolean" },
             { "decimal", "number" },
             { "integer", "number" },
+            { "integer64", "string" }, // int64 serializes as string, need to add custom handling here
             { "unsignedInt", "number" },
             { "positiveInt", "number" },
             { "base64Binary", "string" },
@@ -44,6 +45,7 @@ namespace generate_fhir_prototype_bindings.Languages
             { "oid", "string" },
             { "xhtml", "string" },
             { "uuid", "string" },
+            { "base", "object" },
         };
 
         /// <summary>Set of all language reserved words</summary>
@@ -172,6 +174,8 @@ namespace generate_fhir_prototype_bindings.Languages
 
             if ((fhirType.Properties == null) || (fhirType.Properties.Count == 0))
             {
+                //string typeName = string.IsNullOrEmpty(fhirType.TypeName) ? "object" : fhirType.TypeName;
+
                 sb.Append(
                     $"/**\n" +
                     $" * {comment}\n" +

@@ -111,14 +111,19 @@ namespace generate_fhir_prototype_bindings
                 WriteTypeScript(options);
             }
 
-            if (options.LanguageCSharp)
+            if (options.LanguageCSharpCore)
             {
-                WriteCSharp(options);
+                WriteCSharp(options, (int)LanguageCSharp.CSharpStyle.SystemTextJson);
             }
 
-            if (options.LanguageCSharpRaw)
+            if (options.LanguageCSharpPlain)
             {
-                WriteCSharpNoNewtonsoft(options);
+                WriteCSharp(options, (int)LanguageCSharp.CSharpStyle.Plain);
+            }
+
+            if ((options.LanguageCSharpNewtonsoft) || (options.LanguageCSharpDefault))
+            {
+                WriteCSharp(options, (int)LanguageCSharp.CSharpStyle.Newtonsoft);
             }
 
             // **** done ****
@@ -567,7 +572,6 @@ namespace generate_fhir_prototype_bindings
             return value;
         }
 
-
         ///-------------------------------------------------------------------------------------------------
         /// <summary>Process the structure primitive type.</summary>
         ///
@@ -695,7 +699,17 @@ namespace generate_fhir_prototype_bindings
 
             return "string";
         }
-        
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>Process the XML spreadsheets in a directory, as described by options.</summary>
+        ///
+        /// <remarks>Gino Canessa, 12/5/2019.</remarks>
+        ///
+        /// <param name="options">Options for controlling the operation.</param>
+        ///
+        /// <returns>True if it succeeds, false if it fails.</returns>
+        ///-------------------------------------------------------------------------------------------------
+
         static bool ProcessXmlSpreadsheetsFor(Options options)
         {
             string dir = Path.Combine(options.FhirDirectory, "source");
@@ -809,9 +823,19 @@ namespace generate_fhir_prototype_bindings
         /// <param name="options">Options for controlling the operation.</param>
         ///-------------------------------------------------------------------------------------------------
 
-        static void WriteCSharp(Options options)
+        static void WriteCSharp(Options options, int style)
         {
             LanguageCSharp lang = new LanguageCSharp();
+
+            // **** set the style ****
+
+            lang.LanguageStyle = style;
+
+            // **** enable/disable polymorphic deserialization ****
+
+            lang.PolymorphicDeserialization = options.LanguageCSharpPolymorphic;
+
+            // **** for our filename ****
 
             string filename;
 
@@ -823,12 +847,12 @@ namespace generate_fhir_prototype_bindings
             }
             else
             {
-                filename = $"{options.OutputFile}.{((ILanguangeExporter)lang).SourceFileExtension}";
+                filename = $"{options.OutputFile}{lang.GetFilenamePartForStyle}.{((ILanguangeExporter)lang).SourceFileExtension}";
             }
 
             // **** ****
 
-            Console.WriteLine($"Writing C# file: {filename}");
+            Console.WriteLine($"Writing C# ({lang.GetStyleName}) file: {filename}");
 
             // **** start our file ****
 
@@ -846,47 +870,6 @@ namespace generate_fhir_prototype_bindings
                 writer.Flush();
             }
         }
-
-
-        static void WriteCSharpNoNewtonsoft(Options options)
-        {
-            LanguageCSharp lang = new LanguageCSharp();
-            lang.IncludeNewtonsoftAnnotations = false;
-
-            string filename;
-
-            // **** check for having an extension ****
-
-            if (Path.HasExtension(options.OutputFile))
-            {
-                filename = options.OutputFile;
-            }
-            else
-            {
-                filename = $"{options.OutputFile}.{((ILanguangeExporter)lang).SourceFileExtension}";
-            }
-
-            // **** ****
-
-            Console.WriteLine($"Writing C# file WITHOUT Newtonsoft Json support: {filename}");
-
-            // **** start our file ****
-
-            using (StreamWriter writer = new StreamWriter(filename))
-            {
-                // **** output our data ****
-
-                FhirTypeManager.OutputForLang(
-                    writer,
-                    lang,
-                    options.TypesToOutput,
-                    options.OutputNamespace,
-                    options.ExcludeCodes
-                    );
-                writer.Flush();
-            }
-        }
-
 
         ///-------------------------------------------------------------------------------------------------
         /// <summary>Writes the TypeScript file</summary>

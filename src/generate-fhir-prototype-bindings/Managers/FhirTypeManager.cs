@@ -19,7 +19,8 @@ namespace generate_fhir_prototype_bindings.Managers
         /// <summary>The RegEx remove parentheses content.</summary>
         private const string _regexRemoveParenthesesContentDefinition = "\\(.*?\\)";
 
-        private const string _regexSanitizeForPropertyDefinition = "[\r\n\\.\\|\\- \\/]";
+        /// <summary>The RegEx sanitize for property definition.</summary>
+        private const string _regexSanitizeForPropertyDefinition = "[\r\n\\.\\|\\- \\/\\(\\)]";
 
         #endregion Class Constants . . .
 
@@ -1624,6 +1625,13 @@ namespace generate_fhir_prototype_bindings.Managers
                     (fhirType.IsCircular))
                 {
                     continue;
+                }
+
+                // **** determine the type we are using in output ****
+
+                if (lang.FhirLanguageTypeMap.ContainsKey(fhirType.Name.ToLower()))
+                {
+                    fhirType.TypeName = lang.FhirLanguageTypeMap[fhirType.Name.ToLower()];
                 }
 
                 // **** get our type open ****

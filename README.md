@@ -1,10 +1,14 @@
-# generate-fhir-prototype-bindings
+# Deprecated
+
+This project has been deprecated, please use [FHIR CodeGen](https://github.com/microsoft/fhir-codegen).
+
+## generate-fhir-prototype-bindings
 
 A .Net Core utility to generate language bindings from FHIR sources for use in prototyping FHIR resources and small projects.
 
 Currently supports serialziation to/from 'fhir+json' only.
 
-# Usage
+## Usage
 
 
 ```
@@ -39,7 +43,7 @@ dotnet generate-fhir-prototype-bindings.dll -i /path/to/fhir -o /path/to/output.
 ```
 
 
-## To Do:
+### To Do:
 
 - Allow filtering on structure types (e.g., logical)
 - Output multiple files
@@ -53,7 +57,7 @@ dotnet generate-fhir-prototype-bindings.dll -i /path/to/fhir -o /path/to/output.
 - Explore exporting from Profiles (e.g., additional constraints and specific models only)
 
 
-## Contributing
+### Contributing
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the rights to use your contribution. For details, visit https://cla.microsoft.com.
